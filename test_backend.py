@@ -11,7 +11,7 @@ def test_backend():
     """Test the backend API endpoints"""
     
     # Base URL - change this to your Hugging Face Space URL when deployed
-    base_url = "http://localhost:7860"
+    base_url = "https://adAstra144-Anti-Phishing-Scanner-0.hf.space"
     
     print("🔍 Testing Anti-Phishing Scanner Backend")
     print("=" * 50)

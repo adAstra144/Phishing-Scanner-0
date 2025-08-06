@@ -14,7 +14,7 @@ const statusText = document.getElementById("statusText");
 let totalScans = 0;
 let phishingScans = 0;
 let safeScans = 0;
-let apiUrl = "https://your-huggingface-space-url.hf.space"; // Will be updated
+let apiUrl = "https://adAstra144-Anti-Phishing-Scanner-0.hf.space";
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
