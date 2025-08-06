@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🛡️ SûrLink - Anti-Phishing Scanner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🛡️</span>
+        <h1>SûrLink</h1>
+      </div>
+      <p class="tagline">Built to Detect, Designed to Protect</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Chat Window -->
+      <div class="chat-container">
+        <div class="chat-header">
+          <h2>Phishing Detection</h2>
+          <p>Paste or type a message to analyze for phishing attempts</p>
+        </div>
+        
+        <div class="chat-window" id="chatWindow">
+          <div class="welcome-message">
+            <div class="welcome-icon">🛡️</div>
+            <h3>Welcome to SûrLink</h3>
+            <p>I'm here to help you detect phishing attempts in messages, emails, and text content.</p>
+            <div class="example-messages">
+              <p><strong>Try these examples:</strong></p>
+              <ul>
+                <li>"Your account has been suspended. Click here to verify immediately."</li>
+                <li>"Congratulations! You've won $1000. Claim your prize now."</li>
+                <li>"Your package is ready for pickup. Click to confirm delivery."</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressBar" class="progress-bar hidden">
+          <div class="progress-fill"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+          <textarea 
+            id="messageInput" 
+            placeholder="Paste or type a message here..."
+            rows="3"
+          ></textarea>
+          <button id="scanBtn" class="scan-btn">
+            <span class="btn-icon">🔍</span>
+            <span class="btn-text">Scan Message</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3>📊 Statistics</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-number" id="totalScans">0</span>
+              <span class="stat-label">Total Scans</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number" id="phishingScans">0</span>
+              <span class="stat-label">Phishing Detected</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number" id="safeScans">0</span>
+              <span class="stat-label">Safe Messages</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>📝 Recent History</h3>
+          <div class="history-list" id="historyList">
+            <p class="empty-history">No scans yet</p>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>🔗 API Status</h3>
+          <div class="api-status" id="apiStatus">
+            <span class="status-indicator" id="statusIndicator">●</span>
+            <span class="status-text" id="statusText">Checking...</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Powered by Hugging Face Spaces & Netlify</p>
+      <p>Model: ealvaradob/bert-finetuned-phishing</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html> 
