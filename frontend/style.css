@@ -6,6 +6,20 @@
   transition: all 0.3s ease;
 }
 
+/* Mobile viewport fixes */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent zoom on input focus for iOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select, textarea, input[type="text"] {
+    font-size: 16px;
+  }
+}
+
 body {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
@@ -14,10 +28,22 @@ body {
   font-weight: 400;
   overflow-x: hidden;
   position: relative;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop-only centering */
+@media (min-width: 769px) {
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 }
 
 /* Particle Effects */
@@ -83,7 +109,7 @@ body {
   display: flex;
   flex-direction: row;
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   max-width: none;
   border-radius: 0;
   overflow: hidden;
@@ -92,6 +118,13 @@ body {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 1;
+}
+
+/* Desktop app container */
+@media (min-width: 769px) {
+  .app-container {
+    width: 100vw;
+  }
 }
 
 /* Sidebar */
@@ -749,8 +782,8 @@ body {
 .mobile-menu-btn {
   display: none;
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  left: max(20px, env(safe-area-inset-left, 20px));
   z-index: 1001;
   background: rgba(99, 102, 241, 0.9);
   border: none;
@@ -760,6 +793,8 @@ body {
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .mobile-menu-btn:hover,
@@ -845,20 +880,34 @@ body {
   
   .main-content {
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     padding: 80px 16px 16px 16px;
     margin-left: 0;
+    position: relative;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   .input-area {
     padding: 16px;
     flex-direction: column;
     gap: 12px;
+    position: relative;
+    z-index: 10;
   }
   
   .scan-btn {
     width: 100%;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 48px;
+  }
+  
+  #messageInput {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 120px;
   }
   
   .message-bubble {
@@ -876,8 +925,8 @@ body {
 
 @media (max-width: 480px) {
   .mobile-menu-btn {
-    top: 15px;
-    left: 15px;
+    top: max(15px, env(safe-area-inset-top, 15px));
+    left: max(15px, env(safe-area-inset-left, 15px));
     padding: 10px;
   }
   
