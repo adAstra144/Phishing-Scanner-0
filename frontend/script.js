@@ -25,7 +25,54 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAccessibility();
     addParticleEffect();
     loadTheme();
+    setupMobileMenu();
+    // Initial padding adjustment
+    adjustChatBottomPadding();
+
+    // iOS/Android virtual keyboard handling: move input above keyboard
+    try {
+        if ('visualViewport' in window) {
+            const onResize = () => {
+                const vv = window.visualViewport;
+                const offset = Math.max(0, (vv && vv.height ? (window.innerHeight - vv.height) : 0));
+                document.documentElement.style.setProperty('--keyboard-offset', offset + 'px');
+                adjustChatBottomPadding();
+                try { chatWindow.scrollTop = chatWindow.scrollHeight; } catch (_) {}
+            };
+            window.visualViewport.addEventListener('resize', onResize);
+            window.visualViewport.addEventListener('scroll', onResize);
+        }
+    } catch (e) { /* noop */ }
 });
+
+// === Smooth Scroll for Mouse Wheel (Chat Window only) ===
+let scrollTarget = 0;
+let isScrolling = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  scrollTarget = chatWindow ? chatWindow.scrollTop : 0;
+});
+
+if (chatWindow) {
+  chatWindow.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    scrollTarget += e.deltaY;
+    scrollTarget = Math.max(0, Math.min(scrollTarget, chatWindow.scrollHeight - chatWindow.clientHeight));
+    if (!isScrolling) smoothScrollChat();
+  }, { passive: false });
+}
+
+function smoothScrollChat() {
+  isScrolling = true;
+  const distance = scrollTarget - chatWindow.scrollTop;
+  const step = distance * 0.2;
+  chatWindow.scrollTop += step;
+  if (Math.abs(step) > 0.5) {
+    requestAnimationFrame(smoothScrollChat);
+  } else {
+    isScrolling = false;
+  }
+}
 
 // Add subtle particle effect to background
 function addParticleEffect() {
@@ -92,6 +139,8 @@ function setupEventListeners() {
     messageInput.addEventListener("input", () => {
         messageInput.style.height = "auto";
         messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + "px";
+        adjustChatBottomPadding();
+        try { chatWindow.scrollTop = chatWindow.scrollHeight; } catch (_) {}
     });
     
     // Clear welcome message on first interaction
@@ -100,6 +149,90 @@ function setupEventListeners() {
         if (welcomeMessage) {
             welcomeMessage.style.opacity = '0.7';
         }
+        adjustChatBottomPadding();
+    });
+}
+
+// Ensure chat content isn't hidden under fixed input area
+function adjustChatBottomPadding() {
+    const inputArea = document.querySelector('.input-area');
+    if (!inputArea) return;
+    const style = window.getComputedStyle(inputArea);
+    const height = inputArea.offsetHeight
+      + parseFloat(style.marginTop || 0)
+      + parseFloat(style.marginBottom || 0);
+    const keyboardOffset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-offset')) || 0;
+    const pad = Math.max(160, height + 48 + keyboardOffset);
+    chatWindow.style.paddingBottom = `${pad}px`;
+}
+
+// Recalculate on resize and orientation changes
+window.addEventListener('resize', adjustChatBottomPadding);
+window.addEventListener('orientationchange', adjustChatBottomPadding);
+
+// Mobile drawer menu setup
+function setupMobileMenu() {
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+
+    if (!menuToggle || !sidebar || !backdrop) return;
+
+    const openMenu = () => {
+        sidebar.classList.add('open');
+        backdrop.hidden = false;
+        backdrop.style.pointerEvents = 'auto';
+        document.body.classList.add('no-scroll');
+        menuToggle.setAttribute('aria-expanded', 'true');
+    };
+
+    const closeMenu = () => {
+        sidebar.classList.remove('open');
+        backdrop.hidden = true;
+        backdrop.style.pointerEvents = 'none';
+        document.body.classList.remove('no-scroll');
+        menuToggle.setAttribute('aria-expanded', 'false');
+    };
+
+    menuToggle.addEventListener('click', () => {
+        if (window.matchMedia('(min-width: 1025px)').matches) {
+            // Desktop: toggle collapsed state instead of drawer
+            sidebar.classList.toggle('collapsed');
+            return;
+        }
+        const willOpen = !sidebar.classList.contains('open');
+        if (willOpen) openMenu(); else closeMenu();
+    });
+
+    backdrop.addEventListener('click', (e) => {
+        if (!sidebar.contains(e.target)) closeMenu();
+    });
+
+    sidebar.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+    });
+
+    // Robust: directly wire navigation to data-section, prevent duplicate handlers
+    const buttons = Array.from(document.querySelectorAll('.nav-btn'));
+    buttons.forEach((btn) => {
+        const clone = btn.cloneNode(true);
+        btn.parentNode.replaceChild(clone, btn);
+    });
+    document.querySelectorAll('.nav-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const section = btn.getAttribute('data-section') || btn.dataset.section;
+            if (section) {
+                showSection(section);
+            }
+            if (window.matchMedia('(max-width: 1024px)').matches) {
+                setTimeout(closeMenu, 150);
+            }
+        }, { passive: true });
     });
 }
 
@@ -111,37 +244,170 @@ function showSection(sectionName) {
         section.classList.remove('active');
     });
     
-    // Hide all sidebar sections
-    const sidebarSections = document.querySelectorAll('.sidebar-section');
-    sidebarSections.forEach(section => {
-        section.classList.add('hidden');
-    });
-    
     // Remove active class from all nav buttons
     const navButtons = document.querySelectorAll('.nav-btn');
     navButtons.forEach(btn => {
         btn.classList.remove('active');
     });
     
-    // Show selected section
+    // Show selected section (in main window)
     switch(sectionName) {
         case 'chat':
             document.getElementById('chatSection').classList.add('active');
-            document.querySelector('[onclick="showSection(\'chat\')"]').classList.add('active');
+            {
+                const btn = document.querySelector('[onclick="showSection(\'chat\')"]') || document.querySelector('[onclick="showSection(\"chat\")"]');
+                if (btn) btn.classList.add('active');
+            }
             break;
         case 'history':
-            document.getElementById('historySection').classList.remove('hidden');
-            document.querySelector('[onclick="showSection(\'history\')"]').classList.add('active');
+            document.getElementById('historyMainSection').classList.add('active');
+            {
+                const btn = document.querySelector('[onclick="showSection(\'history\')"]') || document.querySelector('[onclick="showSection(\"history\")"]');
+                if (btn) btn.classList.add('active');
+            }
             break;
         case 'stats':
-            document.getElementById('statsSection').classList.remove('hidden');
-            document.querySelector('[onclick="showSection(\'stats\')"]').classList.add('active');
+            document.getElementById('statsMainSection').classList.add('active');
+            {
+                const btn = document.querySelector('[onclick="showSection(\'stats\')"]') || document.querySelector('[onclick="showSection(\"stats\")"]');
+                if (btn) btn.classList.add('active');
+            }
             break;
         case 'status':
-            document.getElementById('statusSection').classList.remove('hidden');
-            document.querySelector('[onclick="showSection(\'status\')"]').classList.add('active');
+            document.getElementById('statusMainSection').classList.add('active');
+            {
+                const btn = document.querySelector('[onclick="showSection(\'status\')"]') || document.querySelector('[onclick="showSection(\"status\")"]');
+                if (btn) btn.classList.add('active');
+            }
+            break;
+        case 'quiz':
+            document.getElementById('quizMainSection').classList.add('active');
+            {
+                const btn = document.querySelector('[onclick="showSection(\'quiz\')"]') || document.querySelector('[onclick="showSection(\"quiz\")"]');
+                if (btn) btn.classList.add('active');
+            }
+            if (!window.__quizInit) { initQuiz(); window.__quizInit = true; }
             break;
     }
+
+    // Auto-close drawer on mobile after navigation to any section
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    if (window.matchMedia('(max-width: 1024px)').matches && sidebar && sidebar.classList.contains('open')) {
+        setTimeout(() => {
+            sidebar.classList.remove('open');
+            if (backdrop) backdrop.hidden = true;
+            document.body.classList.remove('no-scroll');
+            if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+        }, 0);
+    }
+}
+
+// Simple Quiz Engine
+function initQuiz() {
+    const questions = [
+        {
+            q: 'Which of the following is a sign of a phishing email?',
+            a: [
+                { text: 'An email from a known contact asking for a file', correct: false },
+                { text: 'Grammatical errors and suspicious links', correct: true },
+                { text: 'A secure website address (https://)', correct: false },
+                { text: 'A welcome email from a trusted service', correct: false }
+            ]
+        },
+        {
+            q: 'What should you do if a message asks for your password?',
+            a: [
+                { text: 'Reply immediately with your password', correct: false },
+                { text: 'Verify the source before responding', correct: true },
+                { text: 'Ignore all emails from your company', correct: false },
+                { text: 'Click the link and change your password', correct: false }
+            ]
+        },
+        {
+            q: 'What is a phishing attack?',
+            a: [
+                { text: 'A fishing technique used in rivers', correct: false },
+                { text: 'A way to steal personal information via fake messages', correct: true },
+                { text: 'A password recovery method', correct: false },
+                { text: 'An antivirus scanning process', correct: false }
+            ]
+        }
+    ];
+
+    const quizProgress = document.getElementById('quizProgress');
+    const quizScoreEl = document.getElementById('quizScore');
+    const quizQuestion = document.getElementById('quizQuestion');
+    const quizAnswers = document.getElementById('quizAnswers');
+    const quizFeedback = document.getElementById('quizFeedback');
+    const quizNextBtn = document.getElementById('quizNextBtn');
+    const quizRestartBtn = document.getElementById('quizRestartBtn');
+
+    let idx = 0;
+    let score = 0;
+    let autoTimer = 0;
+    const AUTO_NEXT_DELAY = 1200; // ms
+
+    function render() {
+        if (autoTimer) { clearTimeout(autoTimer); autoTimer = 0; }
+        quizProgress.textContent = `Question ${idx + 1} of ${questions.length}`;
+        quizScoreEl.textContent = `Score: ${score}`;
+        quizQuestion.textContent = questions[idx].q;
+        quizAnswers.innerHTML = '';
+        quizFeedback.textContent = '';
+        quizNextBtn.disabled = true;
+        quizNextBtn.style.display = 'none';
+
+        questions[idx].a.forEach((ans, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-answer';
+            btn.textContent = ans.text;
+            btn.addEventListener('click', () => selectAnswer(btn, ans.correct));
+            quizAnswers.appendChild(btn);
+        });
+    }
+
+    function selectAnswer(btn, correct) {
+        Array.from(quizAnswers.children).forEach(b => b.disabled = true);
+        if (correct) {
+            score += 1;
+            btn.classList.add('correct');
+            quizFeedback.textContent = '✅ Correct!';
+        } else {
+            btn.classList.add('incorrect');
+            quizFeedback.textContent = '❌ Not quite. Be cautious with urgent requests and unfamiliar links.';
+        }
+        quizScoreEl.textContent = `Score: ${score}`;
+        // Auto-advance after a short delay
+        autoTimer = setTimeout(proceed, AUTO_NEXT_DELAY);
+    }
+
+    function proceed() {
+        if (idx < questions.length - 1) {
+            idx += 1;
+            quizNextBtn.textContent = 'Next';
+            render();
+        } else {
+            quizQuestion.textContent = `You scored ${score} / ${questions.length}!`;
+            quizAnswers.innerHTML = '';
+            quizFeedback.textContent = 'Great job! Restart to try again.';
+            quizNextBtn.style.display = 'none';
+            quizRestartBtn.style.display = 'inline-flex';
+        }
+    }
+
+    quizNextBtn.addEventListener('click', proceed);
+
+    quizRestartBtn.addEventListener('click', () => {
+        idx = 0;
+        score = 0;
+        quizNextBtn.style.display = 'inline-flex';
+        quizRestartBtn.style.display = 'none';
+        render();
+    });
+
+    render();
 }
 
 // Check API status
@@ -199,6 +465,7 @@ function appendMessage(content, sender = "user", isTyping = false) {
     bubble.appendChild(bubbleContent);
     chatWindow.appendChild(bubble);
     chatWindow.scrollTop = chatWindow.scrollHeight;
+    adjustChatBottomPadding();
     
     // Remove welcome message after first user message
     const welcomeMessage = chatWindow.querySelector('.welcome-message');
@@ -210,6 +477,7 @@ function appendMessage(content, sender = "user", isTyping = false) {
 // Show typing indicator
 function showTypingIndicator() {
     appendMessage("", "ai", true);
+    adjustChatBottomPadding();
 }
 
 // Remove typing indicator
@@ -240,6 +508,7 @@ function animateProgressBar() {
 // Hide progress bar
 function hideProgressBar() {
     progressBar.classList.add("hidden");
+    adjustChatBottomPadding();
 }
 
 // Scan message function
