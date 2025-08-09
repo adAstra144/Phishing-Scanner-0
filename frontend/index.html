@@ -5,9 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <title>🛡️ SûrLink - AI-Powered Anti-Phishing Scanner</title>
   <meta name="description" content="Advanced AI-powered phishing detection tool. Scan messages, emails, and text content for phishing attempts with high accuracy.">
-  <link rel="icon" href="assets/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="/manifest.json">
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js");
+    }
+  </script>
 </head>
 <body>
   <div class="mobile-header" role="banner">
