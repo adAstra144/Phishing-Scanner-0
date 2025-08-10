@@ -347,7 +347,7 @@ function initQuiz() {
     let idx = 0;
     let score = 0;
     let autoTimer = 0;
-    const AUTO_NEXT_DELAY = 1200; // ms
+    const AUTO_NEXT_DELAY = 1500; // ms
 
     function render() {
         if (autoTimer) { clearTimeout(autoTimer); autoTimer = 0; }
@@ -535,7 +535,7 @@ async function scanMessage() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, include_explanation: true })
         });
 
         if (!response.ok) {
@@ -577,6 +577,7 @@ async function scanMessage() {
 function formatResult(data) {
     const { result, confidence } = data;
     const isPhishing = result.toLowerCase().includes("phishing");
+    const explanation = (data && typeof data.explanation === 'string' && data.explanation.trim()) ? data.explanation.trim() : '';
     
     const icon = isPhishing ? "🚨" : "✅";
     const color = isPhishing ? "#ef4444" : "#10b981";
@@ -594,6 +595,11 @@ function formatResult(data) {
                 "✅ This message appears to be safe. However, always remain vigilant with personal information."
             }
         </div>
+        ${explanation ? `
+        <div style="margin-top: 12px; padding: 12px; border: 1px solid rgba(99,102,241,0.3); border-radius: 10px; background: rgba(30,41,59,0.6); color: #e2e8f0;">
+            <div style="font-weight:600; margin-bottom:6px; color:#a5b4fc;">Why this decision</div>
+            <div style="white-space: pre-wrap; line-height:1.5;">${explanation.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>` : ''}
     `;
 }
 
