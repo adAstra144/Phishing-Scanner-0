@@ -250,7 +250,7 @@ body.no-scroll { overflow: hidden; }
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
@@ -1017,7 +1017,7 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   .sidebar-nav {
     display: flex;
     flex-direction: column; /* restore vertical list in drawer */
-    gap: 8px;
+    gap: 12px;
     overflow-y: auto;
     padding-bottom: 8px;
     margin-bottom: 12px;
@@ -1287,7 +1287,7 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   
   /* Compact Navigation */
   .sidebar-nav {
-    gap: 6px;
+    gap: 10px;
     padding-bottom: 6px;
   }
   
