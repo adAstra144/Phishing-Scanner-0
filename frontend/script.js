@@ -15,6 +15,7 @@ let totalScans = 0;
 let phishingScans = 0;
 let safeScans = 0;
 let apiUrl = "https://adAStra144-Anti-Phishing-Scanner-0.hf.space";
+let explainerUrl = "http://192.168.1.100:7861";
 let isScanning = false;
 
 // Initialize the app
@@ -416,6 +417,7 @@ async function checkApiStatus() {
         statusIndicator.className = "status-indicator checking";
         statusText.textContent = "Checking...";
         
+        // Check main classification API
         const response = await fetch(`${apiUrl}/health`, {
             method: 'GET',
             headers: {
@@ -423,9 +425,23 @@ async function checkApiStatus() {
             }
         });
         
+        // Check explainer API
+        let explainerStatus = "Unknown";
+        try {
+            const expResponse = await fetch(`${explainerUrl}/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            explainerStatus = expResponse.ok ? "Available" : "Unavailable";
+        } catch (error) {
+            explainerStatus = "Unavailable";
+        }
+        
         if (response.ok) {
             statusIndicator.className = "status-indicator online";
-            statusText.textContent = "Online";
+            statusText.textContent = `Online (Explainer: ${explainerStatus})`;
         } else {
             throw new Error('API not responding');
         }
@@ -535,7 +551,7 @@ async function scanMessage() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ message, include_explanation: true })
+            body: JSON.stringify({ message })
         });
 
         if (!response.ok) {
@@ -543,6 +559,28 @@ async function scanMessage() {
         }
 
         const data = await response.json();
+        
+        // Get explanation from the explainer AI model
+        try {
+            const expResp = await fetch(`${explainerUrl}/explain`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: message,
+                    label: data.result // "Safe" or "Phishing"
+                })
+            });
+            
+            if (expResp.ok) {
+                const expData = await expResp.json();
+                data.explanation = expData.explanation || "";
+            }
+        } catch (error) {
+            console.log("Explanation service unavailable:", error);
+            // Continue without explanation
+        }
         
         // Remove loading states
         removeTypingIndicator();
@@ -685,6 +723,12 @@ function loadStats() {
 // Update API URL (this will be set when you deploy to Hugging Face Spaces)
 function updateApiUrl(url) {
     apiUrl = url;
+    checkApiStatus();
+}
+
+// Update explainer URL
+function updateExplainerUrl(url) {
+    explainerUrl = url;
     checkApiStatus();
 }
 

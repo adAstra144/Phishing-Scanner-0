@@ -4,7 +4,6 @@ import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import logging
-import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +18,6 @@ os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
 # Global variables for model and tokenizer
 tokenizer = None
 model = None
-EXPLAINER_API_URL = os.environ.get('EXPLAINER_API_URL', '').strip()
 
 def load_model():
     """Load the phishing detection model"""
@@ -56,37 +54,6 @@ def predict_phishing(text):
         logger.error(f"Error in prediction: {e}")
         raise
 
-def fetch_explanation(message: str, label: str):
-    """Call external explainer Space to generate an explanation.
-
-    Expects EXPLAINER_API_URL env to point to a POST JSON endpoint that accepts
-    {"message": str, "label": str} and returns JSON containing an explanation.
-
-    Returns explanation string or None on failure/not configured.
-    """
-    if not EXPLAINER_API_URL:
-        return None
-    try:
-        payload = {"message": message, "label": label}
-        resp = requests.post(EXPLAINER_API_URL, json=payload, timeout=20)
-        resp.raise_for_status()
-        # Try to parse a few common shapes
-        data = resp.json() if 'application/json' in resp.headers.get('Content-Type', '') else {}
-        if isinstance(data, dict):
-            for key in ("explanation", "reason", "detail", "output", "text"):
-                if key in data and isinstance(data[key], str) and data[key].strip():
-                    return data[key].strip()
-            # HF Spaces gradio typical: { "data": ["..."] }
-            if "data" in data and isinstance(data["data"], list):
-                joined = "\n\n".join([str(x) for x in data["data"] if isinstance(x, (str, int, float))])
-                if joined.strip():
-                    return joined.strip()
-        # Fallback to text
-        text = resp.text.strip()
-        return text if text else None
-    except Exception as e:
-        logger.error(f"Error calling explainer: {e}")
-        return None
 
 @app.route("/", methods=["GET"])
 def home():
@@ -96,7 +63,6 @@ def home():
         "message": "Anti-Phishing Scanner API",
         "endpoints": {
             "/analyze": "POST - Analyze text for phishing",
-            "/explain": "POST - Analyze and explain classification (if explainer configured)",
             "/health": "GET - Health check"
         }
     })
@@ -106,8 +72,7 @@ def health():
     """Health check endpoint"""
     return jsonify({
         "status": "healthy",
-        "model_loaded": model is not None,
-        "explainer_configured": bool(EXPLAINER_API_URL)
+        "model_loaded": model is not None
     })
 
 @app.route("/analyze", methods=["POST"])
@@ -122,58 +87,20 @@ def analyze():
         message = data["message"]
         if not message or not message.strip():
             return jsonify({"error": "Message cannot be empty"}), 400
-        include_explanation = bool(data.get("include_explanation"))
         
         # Make prediction
         label, confidence = predict_phishing(message.strip())
-        explanation = None
-        if include_explanation:
-            explanation = fetch_explanation(message.strip(), label)
         
-        resp = {
+        return jsonify({
             "result": label,
             "confidence": f"{confidence}%",
             "message": message
-        }
-        if include_explanation:
-            resp["explanation"] = explanation or ""
-        return jsonify(resp)
+        })
     
     except Exception as e:
         logger.error(f"Error in analyze endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
-@app.route("/explain", methods=["POST"])
-def analyze_and_explain():
-    """Analyze text and attempt to generate an explanation via external Space."""
-    try:
-        data = request.get_json()
-        if not data or "message" not in data:
-            return jsonify({"error": "Missing 'message' field"}), 400
-
-        message = data["message"]
-        if not message or not message.strip():
-            return jsonify({"error": "Message cannot be empty"}), 400
-
-        # Allow client to pass a prior label; otherwise classify first
-        prior_label = data.get("label")
-        if prior_label and prior_label not in ("Safe", "Phishing"):
-            prior_label = None
-        if not prior_label:
-            prior_label, confidence = predict_phishing(message.strip())
-        else:
-            _, confidence = predict_phishing(message.strip())
-
-        explanation = fetch_explanation(message.strip(), prior_label)
-        return jsonify({
-            "result": prior_label,
-            "confidence": f"{confidence}%",
-            "message": message,
-            "explanation": explanation or ""
-        })
-    except Exception as e:
-        logger.error(f"Error in explain endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
 
 @app.errorhandler(404)
 def not_found(error):
@@ -189,4 +116,4 @@ if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=7860)
 else:
     # For Hugging Face Spaces
-    load_model() 
+    load_model()
