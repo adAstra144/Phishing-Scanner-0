@@ -4,3 +4,5 @@ transformers==4.40.1
 torch==2.3.0
 gunicorn==21.2.0
 numpy<2
+gradio_client==0.15.0
+requests==2.32.3

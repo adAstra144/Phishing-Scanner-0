@@ -15,7 +15,7 @@ let totalScans = 0;
 let phishingScans = 0;
 let safeScans = 0;
 let apiUrl = "https://adAStra144-Anti-Phishing-Scanner-0.hf.space";
-let explainerUrl = "http://192.168.1.100:7861";
+let explainerUrl = "https://x-014-explain-phishing-safe.hf.space";
 let isScanning = false;
 
 // Initialize the app
@@ -425,15 +425,10 @@ async function checkApiStatus() {
             }
         });
         
-        // Check explainer API
+        // Check explainer API (Hugging Face Space): probe base URL
         let explainerStatus = "Unknown";
         try {
-            const expResponse = await fetch(`${explainerUrl}/health`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            const expResponse = await fetch(`${explainerUrl}/`, { method: 'GET' });
             explainerStatus = expResponse.ok ? "Available" : "Unavailable";
         } catch (error) {
             explainerStatus = "Unavailable";
@@ -560,22 +555,42 @@ async function scanMessage() {
 
         const data = await response.json();
         
-        // Get explanation from the explainer AI model
+        // Get explanation from the Hugging Face Space directly
         try {
+            const prompt = (
+                `Task: Provide a short rationale (2-3 sentences) for why the message is classified as ${data.result}.` +
+                `\nRules:` +
+                `\n- Do not repeat or quote the original message.` +
+                `\n- Mention concrete cues (urgency, credential requests, suspicious links/domains, poor grammar, sender spoofing).` +
+                `\n- Be concise.` +
+                `\nMessage:\n${message}\nRationale:`
+            );
+
             const expResp = await fetch(`${explainerUrl}/explain`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: message,
-                    label: data.result // "Safe" or "Phishing"
+                    label: data.result // This should be "Safe" or "Phishing"
                 })
             });
             
+
             if (expResp.ok) {
-                const expData = await expResp.json();
-                data.explanation = expData.explanation || "";
+                const payload = await expResp.json();
+                let explanation = "";
+                if (payload && typeof payload === 'object') {
+                    if (Array.isArray(payload.data) && payload.data.length) {
+                        explanation = String(payload.data[0] ?? "").trim();
+                    } else if (typeof payload.text === 'string') {
+                        explanation = payload.text.trim();
+                    } else if (typeof payload.output === 'string') {
+                        explanation = payload.output.trim();
+                    } else if (typeof payload.result === 'string') {
+                        explanation = payload.result.trim();
+                    }
+                }
+                data.explanation = explanation || "";
             }
         } catch (error) {
             console.log("Explanation service unavailable:", error);
