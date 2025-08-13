@@ -74,6 +74,20 @@
 <div class="account-section">
   <h4>Account</h4>
   <div id="userInfo" class="user-info">
+    <!-- Profile Picture Section - Only visible when logged in -->
+    <div id="profilePictureSection" class="profile-picture-section hidden">
+      <div class="profile-picture-container">
+        <img id="profilePicture" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiM2MzY2ZjEiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTIiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yMCA2MEMyMCA1MC4wNTc2IDI4LjA1NzYgNDIgMzggNDJIMjJDMzEuOTQyNCA0MiA0MCA1MC4wNTc2IDQwIDYwVjYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+" alt="Profile Picture" class="profile-picture">
+        <div class="profile-picture-overlay">
+          <label for="profilePictureInput" class="profile-picture-upload">
+            <span class="upload-icon">📷</span>
+            <span class="upload-text">Change</span>
+          </label>
+        </div>
+      </div>
+      <input type="file" id="profilePictureInput" accept="image/*" style="display: none;" onchange="handleProfilePictureUpload(event)">
+    </div>
+    
     <p id="userEmail">Not logged in</p>
     <button id="loginBtn" class="scan-btn outline" onclick="openLoginModal()">Login / Register</button>
   </div>
@@ -254,9 +268,21 @@
     <span class="close-btn" onclick="closeLoginModal()">X</span>
     <h3 id="authTitle">Login</h3>
 
-    <input type="email" id="authEmail" placeholder="Email" required>
-    <input type="password" id="authPassword" placeholder="Password" required>
+    <!-- Profile Picture Upload - Only visible during registration -->
+    <div id="profilePictureUploadSection" class="profile-picture-upload-section hidden">
+      <label for="authProfilePicture" class="upload-label">Profile Picture (Optional)</label>
+      <div class="auth-profile-picture-container">
+        <img id="authProfilePicture" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iNDAiIGZpbGw9IiM2MzY2ZjEiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTIiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yMCA2MEMyMCA1MC4wNTc2IDI4LjA1NzYgNDIgMzggNDJIMjJDMzEuOTQyNCA0MiA0MCA1MC4wNTc2IDQwIDYwVjYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+" alt="Profile Picture" class="auth-profile-picture">
+        <label for="authProfilePictureInput" class="auth-upload-btn">
+          <span class="upload-icon">📷</span>
+          <span class="upload-text">Choose Picture</span>
+        </label>
+      </div>
+      <input type="file" id="authProfilePictureInput" accept="image/*" style="display: none;" onchange="handleAuthProfilePictureUpload(event)">
+    </div>
 
+    <input type="email" id="authEmail" placeholder="Email" required>
+    <input type="password" id="authPassword" placeholder="Password" require
     <button class="scan-btn" onclick="handleAuthAction()">Login</button>
     <p id="authSwitch">
       Don't have an account? <a href="#" onclick="switchAuthMode(event)">Register here</a>

@@ -334,6 +334,168 @@ body.no-scroll { overflow: hidden; }
   backdrop-filter: blur(10px);
 }
 
+/* Profile Picture Styles */
+.profile-picture-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.profile-picture-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.profile-picture-container:hover {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  transform: scale(1.05);
+}
+
+.profile-picture {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-picture-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.profile-picture-container:hover .profile-picture-overlay {
+  opacity: 1;
+}
+
+.profile-picture-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.upload-icon {
+  font-size: 1.2rem;
+}
+
+.upload-text {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Profile Picture Status Message */
+.profile-picture-status {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 10;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.profile-picture-status.error {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Auth Modal Profile Picture Upload */
+.profile-picture-upload-section {
+  margin: 16px 0;
+  text-align: center;
+}
+
+.upload-label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.auth-profile-picture-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.auth-profile-picture {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #475569;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.auth-profile-picture:hover {
+  border-color: #60a5fa;
+}
+
+.auth-upload-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background-color: #475569;
+  color: #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+}
+
+.auth-upload-btn:hover {
+  background-color: #60a5fa;
+}
+
+.auth-upload-btn .upload-icon {
+  font-size: 16px;
+}
+
+.auth-upload-btn .upload-text {
+  font-size: 12px;
+}
+
 .account-section h4 {
   color: #f1f5f9;
   margin-bottom: 12px;
@@ -1258,6 +1420,24 @@ body.light-theme .camera-actions .flip-btn:hover {
     font-size: 0.8rem;
   }
   
+  /* Mobile Profile Picture */
+  .profile-picture-container {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .profile-picture-upload {
+    font-size: 0.7rem;
+  }
+  
+  .upload-icon {
+    font-size: 1rem;
+  }
+  
+  .upload-text {
+    font-size: 0.6rem;
+  }
+  
   /* Mobile Main Content */
   .main-content {
     flex: 1;
@@ -1713,6 +1893,51 @@ body.light-theme .account-section h4 {
 
 body.light-theme .account-section #userEmail {
   color: #475569;
+}
+
+/* Light Theme - Profile Picture */
+body.light-theme .profile-picture-container {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.light-theme .profile-picture-container:hover {
+  border-color: rgba(99, 102, 241, 0.7);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+/* Light Theme - Profile Picture Status */
+body.light-theme .profile-picture-status {
+  background: rgba(16, 185, 129, 0.95);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+body.light-theme .profile-picture-status.error {
+  background: rgba(239, 68, 68, 0.95);
+}
+
+/* Light Theme - Auth Profile Picture Upload */
+body.light-theme .upload-label {
+  color: #475569;
+}
+
+body.light-theme .auth-profile-picture {
+  border-color: #cbd5e1;
+}
+
+body.light-theme .auth-profile-picture:hover {
+  border-color: #3b82f6;
+}
+
+body.light-theme .auth-upload-btn {
+  background-color: #cbd5e1;
+  color: #475569;
+}
+
+body.light-theme .auth-upload-btn:hover {
+  background-color: #3b82f6;
+  color: white;
 }
 
 body.light-theme .stat-item {

@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTheme();
     setupMobileMenu();
     updateUserUI(); // Add this line to update UI on DOM ready
+    
+    // Ensure profile picture upload section is hidden by default (login mode)
+    const profilePictureUploadSection = document.getElementById("profilePictureUploadSection");
+    if (profilePictureUploadSection) {
+      profilePictureUploadSection.classList.add("hidden");
+    }
+    
     // Initial padding adjustment
     adjustChatBottomPadding();
 
@@ -927,6 +934,18 @@ function openLoginModal() {
 
 function closeLoginModal() {
   document.getElementById("authModal").classList.add("hidden");
+  
+  // Reset auth profile picture to default when closing modal
+  const authProfilePicture = document.getElementById("authProfilePicture");
+  if (authProfilePicture) {
+    authProfilePicture.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iNDAiIGZpbGw9IiM2MzY2ZjEiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTIiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yMCA2MEMyMCA1MC4wNTc2IDI4LjA1NzYgNDIgMzggNDJIMjJDMzEuOTQyNCA0MiA0MCA1MC4wNTc2IDQwIDYwVjYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+";
+  }
+  
+  // Reset file input
+  const authProfilePictureInput = document.getElementById("authProfilePictureInput");
+  if (authProfilePictureInput) {
+    authProfilePictureInput.value = "";
+  }
 }
 
 function switchAuthMode(e) {
@@ -937,6 +956,16 @@ function switchAuthMode(e) {
   document.getElementById("authSwitch").innerHTML = authMode === "login" 
     ? `Don't have an account? <a href="#" onclick="switchAuthMode(event)">Register here</a>` 
     : `Already have an account? <a href="#" onclick="switchAuthMode(event)">Login here</a>`;
+  
+  // Show/hide profile picture upload section based on auth mode
+  const profilePictureUploadSection = document.getElementById("profilePictureUploadSection");
+  if (profilePictureUploadSection) {
+    if (authMode === "register") {
+      profilePictureUploadSection.classList.remove("hidden");
+    } else {
+      profilePictureUploadSection.classList.add("hidden");
+    }
+  }
 }
 
 function handleAuthAction() {
@@ -948,19 +977,87 @@ function handleAuthAction() {
   }
 
   if (authMode === "register") {
-    localStorage.setItem("surlinkUser", JSON.stringify({ email, password }));
+    // Get profile picture if uploaded during registration
+    const authProfilePicture = document.getElementById("authProfilePicture");
+    let profilePictureData = null;
+    
+    if (authProfilePicture && authProfilePicture.src && 
+        !authProfilePicture.src.includes("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iNDAiIGZpbGw9IiM2MzY2ZjEiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTIiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yMCA2MEMyMCA1MC4wNTc2IDI4LjA1NzYgNDIgMzggNDJIMjJDMzEuOTQyNCA0MiA0MCA1MC4wNTc2IDQwIDYwVjYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+")) {
+      profilePictureData = authProfilePicture.src;
+    }
+    
+    // Create new user account
+    const newUser = { 
+      email, 
+      password,
+      profilePicture: profilePictureData
+    };
+    
+    console.log('Creating new user:', { email, hasProfilePicture: !!profilePictureData });
+    
+    // Store user data with email as key to avoid overwriting
+    const userKey = `surlinkUser_${email}`;
+    localStorage.setItem(userKey, JSON.stringify(newUser));
+    console.log('Saved to email-specific storage:', userKey);
+    
+    // Also store in the main surlinkUser for backward compatibility
+    localStorage.setItem("surlinkUser", JSON.stringify(newUser));
+    console.log('Saved to main storage');
     alert("✅ Registration successful! You can now log in.");
     switchAuthMode(new Event("click"));
   } else {
-    const storedUser = JSON.parse(localStorage.getItem("surlinkUser"));
+    // Login existing user
+    console.log('Attempting login for:', email);
+    
+    let storedUser = JSON.parse(localStorage.getItem("surlinkUser"));
+    console.log('Main storage user:', storedUser);
+    
+    // If not found in main storage, check email-specific storage
+    if (!storedUser || storedUser.email !== email) {
+      const userKey = `surlinkUser_${email}`;
+      storedUser = JSON.parse(localStorage.getItem(userKey));
+      console.log('Email-specific storage user:', storedUser);
+    }
+    
     if (storedUser && storedUser.email === email && storedUser.password === password) {
+      console.log('Login successful, user data:', { email: storedUser.email, hasProfilePicture: !!storedUser.profilePicture });
       localStorage.setItem("surlinkLoggedIn", "true");
       localStorage.setItem("surlinkLoggedUser", email);
       updateUserUI();
       closeLoginModal();
     } else {
+      console.log('Login failed - invalid credentials or user not found');
       alert("❌ Invalid email or password");
     }
+  }
+}
+
+function updateUserUI() {
+  const loggedIn = localStorage.getItem("surlinkLoggedIn") === "true";
+  const email = localStorage.getItem("surlinkLoggedUser");
+
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const userEmail = document.getElementById("userEmail");
+  const profilePictureSection = document.getElementById("profilePictureSection");
+  const authModal = document.getElementById("authModal");
+
+  if (loggedIn) {
+    // Show logout, hide login/register
+    if (logoutBtn) logoutBtn.classList.remove("hidden");
+    if (loginBtn) loginBtn.classList.add("hidden");
+    if (userEmail) userEmail.innerText = email;
+    if (profilePictureSection) profilePictureSection.classList.remove("hidden");
+    if (authModal) authModal.classList.add("hidden"); // hide modal if open
+    
+    // Load user's profile picture
+    loadUserProfilePicture(email);
+  } else {
+    // Show login/register, hide logout
+    if (logoutBtn) logoutBtn.classList.add("hidden");
+    if (loginBtn) loginBtn.classList.remove("hidden");
+    if (userEmail) userEmail.innerText = "Not logged in";
+    if (profilePictureSection) profilePictureSection.classList.add("hidden");
   }
 }
 
@@ -968,79 +1065,143 @@ function logout() {
   localStorage.removeItem("surlinkLoggedIn");
   localStorage.removeItem("surlinkLoggedUser");
   updateUserUI();
-}
-
-function updateUserUI() {
-  const loggedIn = localStorage.getItem("surlinkLoggedIn") === "true";
-  const email = localStorage.getItem("surlinkLoggedUser");
-}
-// === Variables ===
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const userEmail = document.getElementById("userEmail");
-const authModal = document.getElementById("authModal");
-const authEmail = document.getElementById("authEmail");
-const authPassword = document.getElementById("authPassword");
-
-// Login state
-let loggedIn = false;
-let email = "";
-
-// === Update UI based on login state ===
-function updateAuthUI() {
-  if (loggedIn) {
-    logoutBtn.classList.remove("hidden");
-    loginBtn.classList.add("hidden");
-    userEmail.innerText = email;
-    authModal.classList.add("hidden"); // hide modal if open
-  } else {
-    logoutBtn.classList.add("hidden");
-    loginBtn.classList.remove("hidden");
-    userEmail.innerText = "Not logged in";
+  
+  // Reset profile picture to default when logging out
+  const profilePicture = document.getElementById('profilePicture');
+  if (profilePicture) {
+    profilePicture.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iNDAiIGZpbGw9IiM2MzY2ZjEiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTIiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yMCA2MEMyMCA1MC4wNTc2IDI4LjA1NzYgNDIgMzggNDJIMjJDMzEuOTQyNCA0MiA0MCA1MC4wNTc2IDQwIDYwVjYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+";
   }
 }
-
-// === Open login modal ===
-loginBtn.addEventListener("click", () => {
-  authModal.classList.remove("hidden");
-});
-
-// === Close modal function ===
-function closeLoginModal() {
-  authModal.classList.add("hidden");
-}
-
-// === Login / Register handler (simple simulation) ===
-function handleAuthAction() {
-  // Normally you would validate user here
-  if (authEmail.value && authPassword.value) {
-    loggedIn = true;
-    email = authEmail.value;
-    updateAuthUI();
-    // Clear inputs
-    authEmail.value = "";
-    authPassword.value = "";
-  } else {
-    alert("Please enter email and password");
-  }
-}
-
-// === Logout handler ===
-logoutBtn.addEventListener("click", () => {
-  loggedIn = false;
-  email = "";
-  updateAuthUI();
-});
-
-// Initial UI setup
-updateAuthUI();
-
-
-
-
 
 // Call on page load
 window.addEventListener("load", () => {
   updateUserUI();
+  loadProfilePicture();
 });
+
+// === Profile Picture Functions ===
+function handleProfilePictureUpload(event) {
+  const file = event.target.files[0];
+  if (file) {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert("File size too large. Please choose an image under 5MB.");
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      alert("Please select a valid image file.");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const profilePicture = document.getElementById('profilePicture');
+      profilePicture.src = e.target.result;
+      
+      // Save to user's account
+      saveProfilePictureToAccount(e.target.result);
+      
+      // Show success message
+      showProfilePictureStatus('Profile picture updated successfully!', 'success');
+    };
+    
+    reader.readAsDataURL(file);
+  }
+}
+
+function saveProfilePictureToAccount(profilePictureData) {
+  const currentUser = localStorage.getItem("surlinkLoggedUser");
+  if (currentUser) {
+    // Update in main storage
+    const storedUser = JSON.parse(localStorage.getItem("surlinkUser"));
+    if (storedUser && storedUser.email === currentUser) {
+      storedUser.profilePicture = profilePictureData;
+      localStorage.setItem("surlinkUser", JSON.stringify(storedUser));
+    }
+    
+    // Also update in email-specific storage
+    const userKey = `surlinkUser_${currentUser}`;
+    const emailSpecificUser = JSON.parse(localStorage.getItem(userKey));
+    if (emailSpecificUser && emailSpecificUser.email === currentUser) {
+      emailSpecificUser.profilePicture = profilePictureData;
+      localStorage.setItem(userKey, JSON.stringify(emailSpecificUser));
+    }
+  }
+}
+
+function loadUserProfilePicture(email) {
+  console.log('Loading profile picture for:', email);
+  
+  let storedUser = JSON.parse(localStorage.getItem("surlinkUser"));
+  console.log('Main storage user:', storedUser);
+  
+  // If not found in main storage, check email-specific storage
+  if (!storedUser || storedUser.email !== email) {
+    const userKey = `surlinkUser_${email}`;
+    storedUser = JSON.parse(localStorage.getItem(userKey));
+    console.log('Email-specific storage user:', storedUser);
+  }
+  
+  if (storedUser && storedUser.email === email && storedUser.profilePicture) {
+    console.log('Profile picture found:', storedUser.profilePicture.substring(0, 50) + '...');
+    const profilePicture = document.getElementById('profilePicture');
+    profilePicture.src = storedUser.profilePicture;
+  } else {
+    console.log('No profile picture found, using default');
+    // Reset to default avatar if no profile picture
+    const profilePicture = document.getElementById('profilePicture');
+    profilePicture.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3ZnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3ZnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iNDAiIGZpbGw9IiM2MzY2ZjEiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMTIiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yMCA2MEMyMCA1MC4wNTc2IDI4LjA1NzYgNDIgMzggNDJIMjJDMzEuOTQyNCA0MiA0MCA1MC4wNTc2IDQwIDYwVjYwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+";
+  }
+}
+
+function loadProfilePicture() {
+  // This function is kept for backward compatibility but now calls loadUserProfilePicture
+  const currentUser = localStorage.getItem("surlinkLoggedUser");
+  if (currentUser) {
+    loadUserProfilePicture(currentUser);
+  }
+}
+
+function handleAuthProfilePictureUpload(event) {
+  const file = event.target.files[0];
+  if (file) {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert("File size too large. Please choose an image under 5MB.");
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      alert("Please select a valid image file.");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const authProfilePicture = document.getElementById('authProfilePicture');
+      authProfilePicture.src = e.target.result;
+    };
+    
+    reader.readAsDataURL(file);
+  }
+}
+
+function showProfilePictureStatus(message, type) {
+  // Create or update status message
+  let statusElement = document.querySelector('.profile-picture-status');
+  if (!statusElement) {
+    statusElement = document.createElement('div');
+    statusElement.className = 'profile-picture-status';
+    document.querySelector('.profile-picture-section').appendChild(statusElement);
+  }
+  
+  statusElement.textContent = message;
+  statusElement.className = `profile-picture-status ${type}`;
+  
+  // Auto-hide after 3 seconds
+  setTimeout(() => {
+    if (statusElement.parentNode) {
+      statusElement.parentNode.removeChild(statusElement);
+    }
+  }, 3000);
+}
 
