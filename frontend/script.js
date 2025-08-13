@@ -15,7 +15,7 @@ let totalScans = 0;
 let phishingScans = 0;
 let safeScans = 0;
 let apiUrl = "https://adAStra144-Anti-Phishing-Scanner-0.hf.space";
-let explainerUrl = "https://x-014-explain-phishing-safe.hf.space";
+let explainerUrl = "";
 let isScanning = false;
 
 // Initialize the app
@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addParticleEffect();
     loadTheme();
     setupMobileMenu();
+    updateUserUI(); // Add this line to update UI on DOM ready
     // Initial padding adjustment
     adjustChatBottomPadding();
 
@@ -267,6 +268,13 @@ function showSection(sectionName) {
                 if (btn) btn.classList.add('active');
             }
             break;
+            case 'camera':
+    document.getElementById('cameraMainSection').classList.add('active');
+    {
+        const btn = document.querySelector('[onclick="showSection(\'camera\')"]');
+        if (btn) btn.classList.add('active');
+    }
+    break;
         case 'stats':
             document.getElementById('statsMainSection').classList.add('active');
             {
@@ -289,7 +297,16 @@ function showSection(sectionName) {
             }
             if (!window.__quizInit) { initQuiz(); window.__quizInit = true; }
             break;
+            case 'feedback':
+    document.getElementById('feedbackMainSection').classList.add('active');
+    {
+        const btn = document.querySelector('[onclick="showSection(\'feedback\')"]') || 
+                    document.querySelector('[onclick="showSection(\"feedback\")"]');
+        if (btn) btn.classList.add('active');
     }
+    break;
+    }
+    
 
     // Auto-close drawer on mobile after navigation to any section
     const menuToggle = document.getElementById('menuToggle');
@@ -305,7 +322,7 @@ function showSection(sectionName) {
     }
 }
 
-// Simple Quiz Engine
+// ---------- REPLACE initQuiz() WITH THIS ----------
 function initQuiz() {
     const questions = [
         {
@@ -348,7 +365,10 @@ function initQuiz() {
     let idx = 0;
     let score = 0;
     let autoTimer = 0;
-    const AUTO_NEXT_DELAY = 1500; // ms
+    const AUTO_NEXT_DELAY = 1200; // ms
+
+    // load best score from localStorage
+    let bestPercent = parseInt(localStorage.getItem('surLinkBestQuiz') || '0', 10);
 
     function render() {
         if (autoTimer) { clearTimeout(autoTimer); autoTimer = 0; }
@@ -359,8 +379,9 @@ function initQuiz() {
         quizFeedback.textContent = '';
         quizNextBtn.disabled = true;
         quizNextBtn.style.display = 'none';
+        quizRestartBtn.style.display = 'none';
 
-        questions[idx].a.forEach((ans, i) => {
+        questions[idx].a.forEach((ans) => {
             const btn = document.createElement('button');
             btn.className = 'quiz-answer';
             btn.textContent = ans.text;
@@ -370,6 +391,7 @@ function initQuiz() {
     }
 
     function selectAnswer(btn, correct) {
+        // disable all
         Array.from(quizAnswers.children).forEach(b => b.disabled = true);
         if (correct) {
             score += 1;
@@ -377,28 +399,58 @@ function initQuiz() {
             quizFeedback.textContent = '✅ Correct!';
         } else {
             btn.classList.add('incorrect');
-            quizFeedback.textContent = '❌ Not quite. Be cautious with urgent requests and unfamiliar links.';
+            // show correct one
+            const correctText = questions[idx].a.find(a => a.correct).text;
+            quizFeedback.textContent = `❌ Not quite. Correct: ${correctText}`;
         }
         quizScoreEl.textContent = `Score: ${score}`;
-        // Auto-advance after a short delay
         autoTimer = setTimeout(proceed, AUTO_NEXT_DELAY);
     }
 
     function proceed() {
         if (idx < questions.length - 1) {
             idx += 1;
-            quizNextBtn.textContent = 'Next';
             render();
         } else {
-            quizQuestion.textContent = `You scored ${score} / ${questions.length}!`;
-            quizAnswers.innerHTML = '';
-            quizFeedback.textContent = 'Great job! Restart to try again.';
-            quizNextBtn.style.display = 'none';
-            quizRestartBtn.style.display = 'inline-flex';
+            finishQuiz();
         }
     }
 
-    quizNextBtn.addEventListener('click', proceed);
+    function finishQuiz() {
+        const percent = Math.round((score / questions.length) * 100);
+        quizQuestion.textContent = `You scored ${score} / ${questions.length} (${percent}%)!`;
+        quizAnswers.innerHTML = '';
+        quizFeedback.textContent = percent >= 70 ? '🎉 Nice — you passed!' : '🔎 Review the tips to improve.';
+        quizNextBtn.style.display = 'none';
+        quizRestartBtn.style.display = 'inline-flex';
+
+        // save best percent
+        if (percent > bestPercent) {
+            bestPercent = percent;
+            localStorage.setItem('surLinkBestQuiz', String(bestPercent));
+            showBestQuizStat(bestPercent);
+        }
+    }
+
+    // optional helper: show best quiz stat in the stats grid
+    function showBestQuizStat(best) {
+        const statsGrid = document.querySelector('.stats-grid');
+        if (!statsGrid) return;
+        let bestEl = document.getElementById('bestQuizStat');
+        if (!bestEl) {
+            const div = document.createElement('div');
+            div.className = 'stat-item';
+            div.innerHTML = `<span class="stat-number" id="bestQuizStat">${best}%</span><span class="stat-label">Best Quiz</span>`;
+            statsGrid.appendChild(div);
+        } else {
+            bestEl.textContent = `${best}%`;
+        }
+    }
+
+    quizNextBtn.addEventListener('click', () => {
+        clearTimeout(autoTimer);
+        proceed();
+    });
 
     quizRestartBtn.addEventListener('click', () => {
         idx = 0;
@@ -408,8 +460,11 @@ function initQuiz() {
         render();
     });
 
+    // initial render + show best if present
     render();
+    if (bestPercent > 0) showBestQuizStat(bestPercent);
 }
+// ---------- end of initQuiz replacement ----------
 
 // Check API status
 async function checkApiStatus() {
@@ -425,10 +480,15 @@ async function checkApiStatus() {
             }
         });
         
-        // Check explainer API (Hugging Face Space): probe base URL
+        // Check explainer API
         let explainerStatus = "Unknown";
         try {
-            const expResponse = await fetch(`${explainerUrl}/`, { method: 'GET' });
+            const expResponse = await fetch(`${explainerUrl}/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
             explainerStatus = expResponse.ok ? "Available" : "Unavailable";
         } catch (error) {
             explainerStatus = "Unavailable";
@@ -555,42 +615,22 @@ async function scanMessage() {
 
         const data = await response.json();
         
-        // Get explanation from the Hugging Face Space directly
+        // Get explanation from the explainer AI model
         try {
-            const prompt = (
-                `Task: Provide a short rationale (2-3 sentences) for why the message is classified as ${data.result}.` +
-                `\nRules:` +
-                `\n- Do not repeat or quote the original message.` +
-                `\n- Mention concrete cues (urgency, credential requests, suspicious links/domains, poor grammar, sender spoofing).` +
-                `\n- Be concise.` +
-                `\nMessage:\n${message}\nRationale:`
-            );
-
             const expResp = await fetch(`${explainerUrl}/explain`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json"
+                },
                 body: JSON.stringify({
                     message: message,
-                    label: data.result // This should be "Safe" or "Phishing"
+                    label: data.result // "Safe" or "Phishing"
                 })
             });
             
-
             if (expResp.ok) {
-                const payload = await expResp.json();
-                let explanation = "";
-                if (payload && typeof payload === 'object') {
-                    if (Array.isArray(payload.data) && payload.data.length) {
-                        explanation = String(payload.data[0] ?? "").trim();
-                    } else if (typeof payload.text === 'string') {
-                        explanation = payload.text.trim();
-                    } else if (typeof payload.output === 'string') {
-                        explanation = payload.output.trim();
-                    } else if (typeof payload.result === 'string') {
-                        explanation = payload.result.trim();
-                    }
-                }
-                data.explanation = explanation || "";
+                const expData = await expResp.json();
+                data.explanation = expData.explanation || "";
             }
         } catch (error) {
             console.log("Explanation service unavailable:", error);
@@ -780,4 +820,227 @@ function loadTheme() {
             themeToggle.checked = true;
         }
     }
-} 
+}
+document.getElementById("submitFeedback").addEventListener("click", () => {
+  const type = document.getElementById("feedbackType").value;
+  const message = document.getElementById("feedbackMessage").value.trim();
+  const status = document.getElementById("feedbackStatus");
+
+  if (!message) {
+    status.textContent = "⚠️ Please enter your feedback before submitting.";
+    status.style.color = "orange";
+    status.classList.add("show");
+    return;
+  }
+
+  console.log("📩 Feedback submitted:", { type, message });
+
+  status.textContent = "✅ Thank you! Your feedback has been sent.";
+  status.style.color = "green";
+  status.classList.add("show");
+
+  // Clear form after submission
+  document.getElementById("feedbackMessage").value = "";
+  setTimeout(() => status.classList.remove("show"), 3000);
+});
+
+document.getElementById("clearFeedback").addEventListener("click", () => {
+  document.getElementById("feedbackMessage").value = "";
+  document.getElementById("feedbackStatus").classList.remove("show");
+});
+
+// === CAMERA SCANNER WITH FLIP ===
+const startCameraBtn = document.getElementById("startCamera");
+const flipCameraBtn = document.getElementById("flipCamera"); // new button
+const capturePhotoBtn = document.getElementById("capturePhoto");
+const cameraStream = document.getElementById("cameraStream");
+const snapshotCanvas = document.getElementById("snapshotCanvas");
+const cameraResult = document.getElementById("cameraResult");
+
+let cameraStreamTrack = null;
+let useFrontCamera = true; // default to front camera
+
+// Function to start camera
+async function startCamera() {
+  if (cameraStreamTrack) cameraStreamTrack.stop(); // stop previous camera
+
+  const constraints = {
+    video: { facingMode: useFrontCamera ? "user" : "environment" }
+  };
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    cameraStream.srcObject = stream;
+    cameraStreamTrack = stream.getTracks()[0];
+    capturePhotoBtn.disabled = false;
+    cameraResult.textContent = "Camera ready. Capture when ready.";
+  } catch (err) {
+    cameraResult.textContent = "❌ Camera access denied or not available.";
+    console.error(err);
+  }
+}
+
+// Start Camera
+startCameraBtn.addEventListener("click", startCamera);
+
+// Flip Camera
+flipCameraBtn.addEventListener("click", () => {
+  useFrontCamera = !useFrontCamera;
+  startCamera();
+});
+
+// Capture Photo & Extract Text
+capturePhotoBtn.addEventListener("click", () => {
+  const ctx = snapshotCanvas.getContext("2d");
+  snapshotCanvas.width = cameraStream.videoWidth;
+  snapshotCanvas.height = cameraStream.videoHeight;
+  ctx.drawImage(cameraStream, 0, 0);
+
+  cameraResult.textContent = "🔍 Scanning image for text...";
+
+  Tesseract.recognize(snapshotCanvas, 'eng')
+    .then(({ data: { text } }) => {
+      if (cameraStreamTrack) cameraStreamTrack.stop(); // Stop camera
+
+      if (!text.trim()) {
+        cameraResult.textContent = "⚠️ No readable text found in image.";
+        return;
+      }
+
+      cameraResult.innerHTML = `<strong>Extracted Text:</strong><br>${text}`;
+
+      // Send extracted text to phishing scanner
+      messageInput.value = text;
+      scanMessage();
+    })
+    .catch(err => {
+      cameraResult.textContent = "❌ Failed to process image.";
+      console.error(err);
+    });
+});
+let authMode = "login"; // "login" or "register"
+
+function openLoginModal() {
+  document.getElementById("authModal").classList.remove("hidden");
+  document.getElementById("sidebar").classList.remove("open"); // If mobile menu is open, close it
+}
+
+function closeLoginModal() {
+  document.getElementById("authModal").classList.add("hidden");
+}
+
+function switchAuthMode(e) {
+  e.preventDefault();
+  authMode = (authMode === "login") ? "register" : "login";
+  document.getElementById("authTitle").innerText = authMode === "login" ? "Login" : "Register";
+  document.querySelector("#authModal button.scan-btn").innerText = authMode === "login" ? "Login" : "Register";
+  document.getElementById("authSwitch").innerHTML = authMode === "login" 
+    ? `Don't have an account? <a href="#" onclick="switchAuthMode(event)">Register here</a>` 
+    : `Already have an account? <a href="#" onclick="switchAuthMode(event)">Login here</a>`;
+}
+
+function handleAuthAction() {
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value.trim();
+  if (!email || !password) {
+    alert("Please fill in all fields");
+    return;
+  }
+
+  if (authMode === "register") {
+    localStorage.setItem("surlinkUser", JSON.stringify({ email, password }));
+    alert("✅ Registration successful! You can now log in.");
+    switchAuthMode(new Event("click"));
+  } else {
+    const storedUser = JSON.parse(localStorage.getItem("surlinkUser"));
+    if (storedUser && storedUser.email === email && storedUser.password === password) {
+      localStorage.setItem("surlinkLoggedIn", "true");
+      localStorage.setItem("surlinkLoggedUser", email);
+      updateUserUI();
+      closeLoginModal();
+    } else {
+      alert("❌ Invalid email or password");
+    }
+  }
+}
+
+function logout() {
+  localStorage.removeItem("surlinkLoggedIn");
+  localStorage.removeItem("surlinkLoggedUser");
+  updateUserUI();
+}
+
+function updateUserUI() {
+  const loggedIn = localStorage.getItem("surlinkLoggedIn") === "true";
+  const email = localStorage.getItem("surlinkLoggedUser");
+}
+// === Variables ===
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const userEmail = document.getElementById("userEmail");
+const authModal = document.getElementById("authModal");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+
+// Login state
+let loggedIn = false;
+let email = "";
+
+// === Update UI based on login state ===
+function updateAuthUI() {
+  if (loggedIn) {
+    logoutBtn.classList.remove("hidden");
+    loginBtn.classList.add("hidden");
+    userEmail.innerText = email;
+    authModal.classList.add("hidden"); // hide modal if open
+  } else {
+    logoutBtn.classList.add("hidden");
+    loginBtn.classList.remove("hidden");
+    userEmail.innerText = "Not logged in";
+  }
+}
+
+// === Open login modal ===
+loginBtn.addEventListener("click", () => {
+  authModal.classList.remove("hidden");
+});
+
+// === Close modal function ===
+function closeLoginModal() {
+  authModal.classList.add("hidden");
+}
+
+// === Login / Register handler (simple simulation) ===
+function handleAuthAction() {
+  // Normally you would validate user here
+  if (authEmail.value && authPassword.value) {
+    loggedIn = true;
+    email = authEmail.value;
+    updateAuthUI();
+    // Clear inputs
+    authEmail.value = "";
+    authPassword.value = "";
+  } else {
+    alert("Please enter email and password");
+  }
+}
+
+// === Logout handler ===
+logoutBtn.addEventListener("click", () => {
+  loggedIn = false;
+  email = "";
+  updateAuthUI();
+});
+
+// Initial UI setup
+updateAuthUI();
+
+
+
+
+
+// Call on page load
+window.addEventListener("load", () => {
+  updateUserUI();
+});
+

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <title>🛡️ SûrLink - AI-Powered Anti-Phishing Scanner</title>
   <meta name="description" content="Advanced AI-powered phishing detection tool. Scan messages, emails, and text content for phishing attempts with high accuracy.">
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#000000">
@@ -15,12 +15,13 @@
       navigator.serviceWorker.register("/service-worker.js");
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 </head>
 <body>
   <div class="mobile-header" role="banner">
     <button id="menuToggle" class="hamburger" aria-label="Toggle menu" aria-expanded="false" aria-controls="sidebar">☰</button>
     <div class="mobile-brand">
-      <span class="brand-logo"><img src="assets/logo.svg" alt="SûrLink logo" onerror="this.onerror=null;this.src='assets/logo.png';"></span>
+      <span class="brand-logo"><img src="assets/logo.png" alt="SûrLink logo" ></span>
       <span class="brand-title">SûrLink</span>
     </div>
   </div>
@@ -30,16 +31,21 @@
     <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
       <div class="sidebar-scroll">
         <div class="brand-header">
-          <span class="brand-logo"><img src="assets/logo.svg" alt="SûrLink logo" onerror="this.onerror=null;this.src='assets/logo.png';"></span>
+          <span class="brand-logo"><img src="assets/logo.png" alt="SûrLink logo" ></span>
           <span class="brand-title">SûrLink</span>
         </div>
         
-        <p class="tagline">Built to Detect, Designed to Protect</p>
+        <p class="tagline">Built to Detect,
+                    <br> Designed to Protect</p>
         
         <nav class="sidebar-nav">
           <button class="nav-btn active" data-section="chat" onclick="showSection('chat')">
             <span class="nav-icon">💬</span>
             <span class="nav-text">Chat Scanner</span>
+          </button>
+          <button class="nav-btn" data-section="camera" onclick="showSection('camera')">
+            <span class="nav-icon">📷</span>
+           <span class="nav-text">Camera Scanner</span>
           </button>
           <button class="nav-btn" data-section="history" onclick="showSection('history')">
             <span class="nav-icon">📁</span>
@@ -53,14 +59,27 @@
             <span class="nav-icon">🧠</span>
             <span class="nav-text">Quiz</span>
           </button>
-          <button class="nav-btn" data-section="status" onclick="showSection('status')">
+          <!--<button class="nav-btn" data-section="status" onclick="showSection('status')">
             <span class="nav-icon">🔗</span>
             <span class="nav-text">API Status</span>
+          </button> -->
+          <button class="nav-btn" data-section="feedback" onclick="showSection('feedback')">
+            <span class="nav-icon">💬</span>
+            <span class="nav-text">Feedback</span>
           </button>
         </nav>
 
         <!-- Sidebar now only holds theme toggle on mobile; other views moved to main -->
-
+   <!-- User Account Section -->
+<div class="account-section">
+  <h4>Account</h4>
+  <div id="userInfo" class="user-info">
+    <p id="userEmail">Not logged in</p>
+    <button id="loginBtn" class="scan-btn outline" onclick="openLoginModal()">Login / Register</button>
+  </div>
+  <button id="logoutBtn" class="scan-btn outline hidden" onclick="logout()">Logout</button>
+</div>
+   
         <!-- Theme Toggle Section -->
         <div class="theme-toggle-section">
           <h4>Appearance</h4>
@@ -81,7 +100,7 @@
       <div id="chatSection" class="content-section active">
         <div class="chat-window" id="chatWindow" role="log" aria-live="polite">
           <div class="welcome-message">
-            <div class="welcome-icon"><img src="assets/logo.svg" alt="SûrLink logo" onerror="this.onerror=null;this.src='assets/logo.png';"></div>
+            <div class="welcome-icon"><img src="assets/logo.png" alt="SûrLink logo"></div>
             <h3>Welcome to SûrLink</h3>
             <p>I'm here to help you detect phishing attempts in messages, emails, and text content using advanced AI technology.</p>
             <div class="example-messages">
@@ -176,11 +195,75 @@
           </div>
         </div>
       </div>
+   <!-- Feedback (Main) -->
+<div id="feedbackMainSection" class="content-section">
+  <div class="content-scroll">
+    <h3 style="margin-bottom:12px;">We value your feedback</h3>
+    <div class="feedback-card">
+      <label for="feedbackType">Feedback Type</label>
+      <select id="feedbackType" aria-label="Select feedback type">
+        <option value="suggestion">💡 Suggestion</option>
+        <option value="bug">🐞 Bug Report</option>
+        <option value="question">❓ Question</option>
+      </select>
+
+      <label for="feedbackMessage">Your Feedback</label>
+      <textarea 
+        id="feedbackMessage" 
+        placeholder="Type your feedback here..."
+        aria-label="Feedback message"
+      ></textarea>
+
+      <div class="feedback-actions">
+        <button id="submitFeedback" class="scan-btn">Submit</button>
+        <button id="clearFeedback" class="scan-btn outline">Clear</button>
+      </div>
+
+      <div id="feedbackStatus" class="feedback-status" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+<!-- Camera Scanner -->
+<div id="cameraMainSection" class="content-section">
+  <div class="content-scroll">
+    <h3 style="margin-bottom:12px;">Camera Scanner</h3>
+    <p>Take a picture of a suspicious message or link to scan for phishing.</p>
+
+    <div class="camera-container">
+      <video id="cameraStream" autoplay playsinline></video>
+      <canvas id="snapshotCanvas" style="display:none;"></canvas>
+    </div>
+
+    <div class="camera-actions">
+      <button id="flipCamera" class="flip-btn">🔄</button>
+      <button id="startCamera" class="scan-btn">📷 Start Camera</button>
+      <button id="capturePhoto" class="scan-btn outline" disabled>📸 Capture</button>
+    </div>
+
+    <div id="cameraResult" class="camera-result"></div>
+  </div>
+</div>
     </main>
   </div>
 
   <div id="backdrop" class="backdrop" hidden></div>
+  
+  <!-- Login/Register Modal -->
+<div id="authModal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeLoginModal()">X</span>
+    <h3 id="authTitle">Login</h3>
 
+    <input type="email" id="authEmail" placeholder="Email" required>
+    <input type="password" id="authPassword" placeholder="Password" required>
+
+    <button class="scan-btn" onclick="handleAuthAction()">Login</button>
+    <p id="authSwitch">
+      Don't have an account? <a href="#" onclick="switchAuthMode(event)">Register here</a>
+    </p>
+  </div>
+</div>
+  
   <script src="script.js"></script>
 </body>
 </html> 
