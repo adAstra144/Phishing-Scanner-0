@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <title>🛡️ SûrLink - AI-Powered Anti-Phishing Scanner</title>
   <meta name="description" content="Advanced AI-powered phishing detection tool. Scan messages, emails, and text content for phishing attempts with high accuracy.">
-  <link rel="icon" type="image/svg+xml" href="Favicon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#000000">
@@ -35,12 +35,17 @@
           <span class="brand-title">SûrLink</span>
         </div>
         
-        <p class="tagline">Built to Detect, Designed to Protect</p>
+        <p class="tagline">Built to Detect,
+                    <br> Designed to Protect</p>
         
         <nav class="sidebar-nav">
           <button class="nav-btn active" data-section="chat" onclick="showSection('chat')">
             <span class="nav-icon">💬</span>
             <span class="nav-text">Chat Scanner</span>
+          </button>
+          <button class="nav-btn" data-section="camera" onclick="showSection('camera')">
+            <span class="nav-icon">📷</span>
+           <span class="nav-text">Camera Scanner</span>
           </button>
           <button class="nav-btn" data-section="history" onclick="showSection('history')">
             <span class="nav-icon">📁</span>
@@ -50,18 +55,14 @@
             <span class="nav-icon">📊</span>
             <span class="nav-text">Statistics</span>
           </button>
-          <button class="nav-btn" data-section="camera" onclick="showSection('camera')">
-            <span class="nav-icon">📷</span>
-        <span class="nav-text">Camera Scanner</span>
-          </button>
           <button class="nav-btn" data-section="quiz" onclick="showSection('quiz')">
             <span class="nav-icon">🧠</span>
             <span class="nav-text">Quiz</span>
           </button>
-          <button class="nav-btn" data-section="status" onclick="showSection('status')">
+          <!--<button class="nav-btn" data-section="status" onclick="showSection('status')">
             <span class="nav-icon">🔗</span>
             <span class="nav-text">API Status</span>
-          </button>
+          </button> -->
           <button class="nav-btn" data-section="feedback" onclick="showSection('feedback')">
             <span class="nav-icon">💬</span>
             <span class="nav-text">Feedback</span>
@@ -74,7 +75,7 @@
   <h4>Account</h4>
   <div id="userInfo" class="user-info">
     <p id="userEmail">Not logged in</p>
-    <button class="scan-btn outline" onclick="openLoginModal()">Login / Register</button>
+    <button id="loginBtn" class="scan-btn outline" onclick="openLoginModal()">Login / Register</button>
   </div>
   <button id="logoutBtn" class="scan-btn outline hidden" onclick="logout()">Logout</button>
 </div>
@@ -234,6 +235,7 @@
     </div>
 
     <div class="camera-actions">
+      <button id="flipCamera" class="flip-btn">🔄</button>
       <button id="startCamera" class="scan-btn">📷 Start Camera</button>
       <button id="capturePhoto" class="scan-btn outline" disabled>📸 Capture</button>
     </div>
@@ -249,7 +251,7 @@
   <!-- Login/Register Modal -->
 <div id="authModal" class="modal hidden">
   <div class="modal-content">
-    <span class="close-btn" onclick="closeLoginModal()">×</span>
+    <span class="close-btn" onclick="closeLoginModal()">X</span>
     <h3 id="authTitle">Login</h3>
 
     <input type="email" id="authEmail" placeholder="Email" required>

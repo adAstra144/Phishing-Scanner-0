@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addParticleEffect();
     loadTheme();
     setupMobileMenu();
+    updateUserUI(); // Add this line to update UI on DOM ready
     // Initial padding adjustment
     adjustChatBottomPadding();
 
@@ -848,18 +849,27 @@ document.getElementById("clearFeedback").addEventListener("click", () => {
   document.getElementById("feedbackStatus").classList.remove("show");
 });
 
-// === CAMERA SCANNER ===
+// === CAMERA SCANNER WITH FLIP ===
 const startCameraBtn = document.getElementById("startCamera");
+const flipCameraBtn = document.getElementById("flipCamera"); // new button
 const capturePhotoBtn = document.getElementById("capturePhoto");
 const cameraStream = document.getElementById("cameraStream");
 const snapshotCanvas = document.getElementById("snapshotCanvas");
 const cameraResult = document.getElementById("cameraResult");
-let cameraStreamTrack = null;
 
-// Start Camera
-startCameraBtn.addEventListener("click", async () => {
+let cameraStreamTrack = null;
+let useFrontCamera = true; // default to front camera
+
+// Function to start camera
+async function startCamera() {
+  if (cameraStreamTrack) cameraStreamTrack.stop(); // stop previous camera
+
+  const constraints = {
+    video: { facingMode: useFrontCamera ? "user" : "environment" }
+  };
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
     cameraStream.srcObject = stream;
     cameraStreamTrack = stream.getTracks()[0];
     capturePhotoBtn.disabled = false;
@@ -868,6 +878,15 @@ startCameraBtn.addEventListener("click", async () => {
     cameraResult.textContent = "❌ Camera access denied or not available.";
     console.error(err);
   }
+}
+
+// Start Camera
+startCameraBtn.addEventListener("click", startCamera);
+
+// Flip Camera
+flipCameraBtn.addEventListener("click", () => {
+  useFrontCamera = !useFrontCamera;
+  startCamera();
 });
 
 // Capture Photo & Extract Text
@@ -879,7 +898,6 @@ capturePhotoBtn.addEventListener("click", () => {
 
   cameraResult.textContent = "🔍 Scanning image for text...";
 
-  // Use Tesseract.js OCR
   Tesseract.recognize(snapshotCanvas, 'eng')
     .then(({ data: { text } }) => {
       if (cameraStreamTrack) cameraStreamTrack.stop(); // Stop camera
@@ -955,12 +973,74 @@ function logout() {
 function updateUserUI() {
   const loggedIn = localStorage.getItem("surlinkLoggedIn") === "true";
   const email = localStorage.getItem("surlinkLoggedUser");
+}
+// === Variables ===
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const userEmail = document.getElementById("userEmail");
+const authModal = document.getElementById("authModal");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
 
+// Login state
+let loggedIn = false;
+let email = "";
+
+// === Update UI based on login state ===
+function updateAuthUI() {
   if (loggedIn) {
-    document.getElementById("userEmail").innerText = email;
-    document.getElementById("logoutBtn").classList.remove("hidden");
+    logoutBtn.classList.remove("hidden");
+    loginBtn.classList.add("hidden");
+    userEmail.innerText = email;
+    authModal.classList.add("hidden"); // hide modal if open
   } else {
-    document.getElementById("userEmail").innerText = "Not logged in";
-    document.getElementById("logoutBtn").classList.add("hidden");
+    logoutBtn.classList.add("hidden");
+    loginBtn.classList.remove("hidden");
+    userEmail.innerText = "Not logged in";
   }
 }
+
+// === Open login modal ===
+loginBtn.addEventListener("click", () => {
+  authModal.classList.remove("hidden");
+});
+
+// === Close modal function ===
+function closeLoginModal() {
+  authModal.classList.add("hidden");
+}
+
+// === Login / Register handler (simple simulation) ===
+function handleAuthAction() {
+  // Normally you would validate user here
+  if (authEmail.value && authPassword.value) {
+    loggedIn = true;
+    email = authEmail.value;
+    updateAuthUI();
+    // Clear inputs
+    authEmail.value = "";
+    authPassword.value = "";
+  } else {
+    alert("Please enter email and password");
+  }
+}
+
+// === Logout handler ===
+logoutBtn.addEventListener("click", () => {
+  loggedIn = false;
+  email = "";
+  updateAuthUI();
+});
+
+// Initial UI setup
+updateAuthUI();
+
+
+
+
+
+// Call on page load
+window.addEventListener("load", () => {
+  updateUserUI();
+});
+
