@@ -48,10 +48,10 @@ body {
   font-weight: 400;
   overflow: hidden; /* prevent outer page scrollbar; inner panes handle scrolling */
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
-html { height: 100vh; overflow: hidden; scroll-behavior: smooth; }
+html { height: 100dvh; overflow: hidden; scroll-behavior: smooth; }
 
 /* Lock scroll when drawer is open */
 body.no-scroll { overflow: hidden; }
@@ -131,7 +131,7 @@ body.no-scroll { overflow: hidden; }
 
 @keyframes float {
   0% {
-    transform: translateY(100vh) rotate(0deg);
+    transform: translateY(100dvh) rotate(0deg);
     opacity: 0;
   }
   10% {
@@ -1037,7 +1037,7 @@ body.light-theme .camera-actions .flip-btn:hover {
 
   .app-container {
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100dvh;
     padding-top: 0; /* avoid extra gap under header; we use margin-top instead */
   }
 
@@ -1045,7 +1045,7 @@ body.light-theme .camera-actions .flip-btn:hover {
     position: fixed;
     top: 64px;
     left: -100%;
-    height: calc(100vh - 64px);
+    height: calc(100dvh - 64px);
     width: 70vw;
     max-width: 420px;
     background: rgba(15, 23, 42, 0.97);
@@ -1089,7 +1089,7 @@ body.light-theme .camera-actions .flip-btn:hover {
 
 @media (max-width: 768px) {
   /* Mobile App Layout */
-  html, body { height: 100svh; overflow: hidden; }
+  html, body { height: 100dvh; overflow: hidden; }
   .mobile-header {
     position: fixed;
     top: 0;
@@ -1107,7 +1107,7 @@ body.light-theme .camera-actions .flip-btn:hover {
   
   .app-container {
     flex-direction: column;
-    height: calc(100svh - 64px);
+    height: calc(100dvh - 64px);
     border-radius: 0;
     background: rgba(255, 255, 255, 0.05);
     margin-top: 64px;
@@ -1119,7 +1119,7 @@ body.light-theme .camera-actions .flip-btn:hover {
     position: fixed;
     top: 64px;
     left: -100%;
-    height: calc(100svh - 64px);
+    height: calc(100dvh - 64px);
     width: 80vw;
     max-width: 360px;
     border-right: 1px solid rgba(99, 102, 241, 0.2);
@@ -1261,7 +1261,7 @@ body.light-theme .camera-actions .flip-btn:hover {
   /* Mobile Main Content */
   .main-content {
     flex: 1;
-    height: calc(100svh - 64px);
+    height: calc(100dvh - 64px);
     padding: 0;
     display: flex;
     flex-direction: column;
