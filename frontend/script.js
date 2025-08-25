@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupMobileMenu();
     updateUserUI(); // Add this line to update UI on DOM ready
     setupImagePicker();
+    updateCameraOptionVisibility(); // Initialize camera option visibility
     // Initial padding adjustment
     adjustChatBottomPadding();
 
@@ -173,8 +174,14 @@ function adjustChatBottomPadding() {
 }
 
 // Recalculate on resize and orientation changes
-window.addEventListener('resize', adjustChatBottomPadding);
-window.addEventListener('orientationchange', adjustChatBottomPadding);
+window.addEventListener('resize', () => {
+    adjustChatBottomPadding();
+    updateCameraOptionVisibility();
+});
+window.addEventListener('orientationchange', () => {
+    adjustChatBottomPadding();
+    updateCameraOptionVisibility();
+});
 
 // Mobile drawer menu setup
 function setupMobileMenu() {
@@ -883,6 +890,315 @@ function setupImagePicker() {
     }
   });
 }
+
+// === Image Options Dropdown Functions ===
+function isSmallScreen() {
+  return window.innerWidth <= 1024; // Mobile and tablet breakpoint
+}
+
+function updateCameraOptionVisibility() {
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  const cameraOption = dropdown?.querySelector('.dropdown-option:first-child');
+  
+  if (cameraOption) {
+    // Temporarily enable camera on all screen sizes for testing
+    cameraOption.style.display = 'flex';
+    
+    // Original code (uncomment when done testing):
+    // if (isSmallScreen()) {
+    //   cameraOption.style.display = 'flex';
+    // } else {
+    //   cameraOption.style.display = 'none';
+    // }
+  }
+}
+
+function toggleImageOptions() {
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  
+  if (dropdown) {
+    // Update camera option visibility before showing dropdown
+    updateCameraOptionVisibility();
+    dropdown.classList.toggle('hidden');
+  }
+}
+
+function selectImage() {
+  const fileInput = document.getElementById('imagePicker');
+  if (fileInput) {
+    fileInput.click();
+  }
+  // Hide dropdown after selection
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
+}
+
+// Camera functionality variables
+let cameraStream = null;
+let currentCameraIndex = 0;
+let availableCameras = [];
+
+function openCamera() {
+  console.log('openCamera function called');
+  
+  // Hide dropdown after selection
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
+  
+  // Show camera modal
+  const cameraModal = document.getElementById('cameraModal');
+  if (!cameraModal) {
+    console.error('Camera modal not found!');
+    alert('Camera modal not found. Please check the HTML structure.');
+    return;
+  }
+  
+  console.log('Showing camera modal');
+  cameraModal.classList.remove('hidden');
+  
+  // Initialize camera
+  console.log('Initializing camera...');
+  initializeCamera();
+}
+
+function closeCameraModal() {
+  const cameraModal = document.getElementById('cameraModal');
+  cameraModal.classList.add('hidden');
+  
+  // Stop camera stream
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+  
+  // Reset camera index
+  currentCameraIndex = 0;
+}
+
+async function initializeCamera() {
+  console.log('initializeCamera function called');
+  
+  const video = document.getElementById('cameraVideo');
+  const errorDiv = document.getElementById('cameraError');
+  const controls = document.querySelector('.camera-controls');
+  
+  console.log('Video element:', video);
+  console.log('Error div:', errorDiv);
+  console.log('Controls:', controls);
+  
+  try {
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error('Camera API not supported');
+      throw new Error('Camera API not supported');
+    }
+    
+    console.log('Camera API is supported');
+    
+    // Get available cameras
+    console.log('Enumerating devices...');
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    availableCameras = devices.filter(device => device.kind === 'videoinput');
+    console.log('Available cameras:', availableCameras);
+    
+    // Show/hide switch camera button based on available cameras
+    const switchBtn = document.getElementById('switchCameraBtn');
+    if (switchBtn) {
+      switchBtn.style.display = availableCameras.length > 1 ? 'flex' : 'none';
+    }
+    
+    // Start camera stream
+    console.log('Starting camera stream...');
+    await startCameraStream();
+    
+    // Show controls and hide error
+    console.log('Camera initialized successfully');
+    controls.style.display = 'flex';
+    errorDiv.classList.add('hidden');
+    
+  } catch (error) {
+    console.error('Camera initialization error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
+    controls.style.display = 'none';
+    errorDiv.classList.remove('hidden');
+    
+    // Show specific error message
+    const errorText = errorDiv.querySelector('p:first-child');
+    if (errorText) {
+      if (error.name === 'NotAllowedError') {
+        errorText.textContent = '❌ Camera access denied. Please allow camera access in your browser settings.';
+      } else if (error.name === 'NotFoundError') {
+        errorText.textContent = '❌ No camera found on this device.';
+      } else {
+        errorText.textContent = `❌ Camera error: ${error.message}`;
+      }
+    }
+  }
+}
+
+async function startCameraStream() {
+  const video = document.getElementById('cameraVideo');
+  
+  // Stop existing stream
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+  }
+  
+  let constraints = {
+    video: {
+      width: { min: 320, ideal: 1280, max: 1920 },
+      height: { min: 240, ideal: 720, max: 1080 }
+    }
+  };
+  
+  // If we have specific cameras with valid deviceId, use the current one
+  if (availableCameras.length > 0 && availableCameras[currentCameraIndex].deviceId) {
+    constraints.video.deviceId = { exact: availableCameras[currentCameraIndex].deviceId };
+  } else {
+    // Fallback to facing mode if no specific cameras found or no deviceId
+    constraints.video.facingMode = currentCameraIndex === 0 ? 'environment' : 'user';
+  }
+  
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = cameraStream;
+    
+    // Wait for video to be ready
+    return new Promise((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('Video failed to load'));
+      // Timeout after 5 seconds
+      setTimeout(() => reject(new Error('Video loading timeout')), 5000);
+    });
+  } catch (error) {
+    console.error('Camera stream error:', error);
+    throw error;
+  }
+}
+
+function switchCamera() {
+  if (availableCameras.length <= 1) return;
+  
+  currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+  startCameraStream();
+}
+
+function capturePhoto() {
+  const video = document.getElementById('cameraVideo');
+  const canvas = document.getElementById('cameraCanvas');
+  const captureBtn = document.getElementById('captureBtn');
+  
+  // Disable capture button during processing
+  captureBtn.disabled = true;
+  captureBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Processing...</span>';
+  
+  try {
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+      if (blob) {
+        // Create a file from the blob
+        const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+        
+        // Process the captured image
+        await processCapturedImage(file);
+      }
+      
+      // Close camera modal
+      closeCameraModal();
+      
+      // Reset capture button
+      captureBtn.disabled = false;
+      captureBtn.innerHTML = '<span class="btn-icon">📷</span><span class="btn-text">Capture</span>';
+    }, 'image/jpeg', 0.8);
+    
+  } catch (error) {
+    console.error('Photo capture error:', error);
+    alert('Failed to capture photo. Please try again.');
+    
+    // Reset capture button
+    captureBtn.disabled = false;
+    captureBtn.innerHTML = '<span class="btn-icon">📷</span><span class="btn-text">Capture</span>';
+  }
+}
+
+async function processCapturedImage(file) {
+  // Show loading state
+  const originalBtnText = scanBtn.innerHTML;
+  scanBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Extracting...</span>';
+  scanBtn.disabled = true;
+  
+  try {
+    const img = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    
+    // Extract text using Tesseract
+    const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+    const extracted = (text || '').trim();
+    
+    if (extracted) {
+      messageInput.value = extracted;
+      messageInput.dispatchEvent(new Event('input'));
+    } else {
+      alert('No text found in the image. Please try again with a clearer image.');
+    }
+  } catch (error) {
+    console.error('Image processing error:', error);
+    alert('Failed to extract text from image. Please try again.');
+  } finally {
+    // Restore button state
+    scanBtn.innerHTML = originalBtnText;
+    scanBtn.disabled = false;
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('imageOptionsDropdown');
+  const imageBtn = document.getElementById('imageOptionsBtn');
+  
+  if (dropdown && !dropdown.classList.contains('hidden') && 
+      !imageBtn.contains(event.target) && 
+      !dropdown.contains(event.target)) {
+    dropdown.classList.add('hidden');
+  }
+  
+  // Close camera modal when clicking backdrop
+  const cameraModal = document.getElementById('cameraModal');
+  const cameraContent = cameraModal?.querySelector('.camera-modal');
+  
+  if (cameraModal && !cameraModal.classList.contains('hidden') && 
+      !cameraContent?.contains(event.target)) {
+    closeCameraModal();
+  }
+});
+
+// Close camera modal with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    const cameraModal = document.getElementById('cameraModal');
+    if (cameraModal && !cameraModal.classList.contains('hidden')) {
+      closeCameraModal();
+    }
+  }
+});
 let authMode = "login"; // "login" or "register"
 
 function openLoginModal() {
