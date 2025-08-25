@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTheme();
     setupMobileMenu();
     updateUserUI(); // Add this line to update UI on DOM ready
+    setupImagePicker();
     // Initial padding adjustment
     adjustChatBottomPadding();
 
@@ -48,39 +49,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // === Smooth Scroll for Mouse Wheel (Chat Window only) ===
-let scrollTarget = 0;
-let isScrolling = false;
+// Removed custom smooth scroll implementation - using natural browser scrolling for better performance
 
-document.addEventListener('DOMContentLoaded', () => {
-  scrollTarget = chatWindow ? chatWindow.scrollTop : 0;
-});
+// === Scroll Performance Optimization ===
+let scrollTimeout;
 
 if (chatWindow) {
-  chatWindow.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    scrollTarget += e.deltaY;
-    scrollTarget = Math.max(0, Math.min(scrollTarget, chatWindow.scrollHeight - chatWindow.clientHeight));
-    if (!isScrolling) smoothScrollChat();
-  }, { passive: false });
-}
-
-function smoothScrollChat() {
-  isScrolling = true;
-  const distance = scrollTarget - chatWindow.scrollTop;
-  const step = distance * 0.2;
-  chatWindow.scrollTop += step;
-  if (Math.abs(step) > 0.5) {
-    requestAnimationFrame(smoothScrollChat);
-  } else {
-    isScrolling = false;
-  }
+  chatWindow.addEventListener('scroll', () => {
+    // Add performance class during scrolling
+    chatWindow.classList.add('scrolling');
+    
+    // Pause particle animations during scroll for better performance
+    const particles = document.querySelector('.particles');
+    if (particles) {
+      particles.style.animationPlayState = 'paused';
+    }
+    
+    // Clear existing timeout
+    clearTimeout(scrollTimeout);
+    
+    // Remove performance class after scrolling stops
+    scrollTimeout = setTimeout(() => {
+      chatWindow.classList.remove('scrolling');
+      // Resume particle animations
+      if (particles) {
+        particles.style.animationPlayState = 'running';
+      }
+    }, 150);
+  });
 }
 
 // Add subtle particle effect to background
 function addParticleEffect() {
     const particles = document.createElement('div');
     particles.className = 'particles';
-    particles.innerHTML = Array.from({length: 20}, () => '<div class="particle"></div>').join('');
+    // Reduced from 20 to 10 particles for better performance
+    particles.innerHTML = Array.from({length: 10}, () => '<div class="particle"></div>').join('');
     document.body.appendChild(particles);
 }
 
@@ -268,13 +272,6 @@ function showSection(sectionName) {
                 if (btn) btn.classList.add('active');
             }
             break;
-            case 'camera':
-    document.getElementById('cameraMainSection').classList.add('active');
-    {
-        const btn = document.querySelector('[onclick="showSection(\'camera\')"]');
-        if (btn) btn.classList.add('active');
-    }
-    break;
         case 'stats':
             document.getElementById('statsMainSection').classList.add('active');
             {
@@ -662,7 +659,7 @@ async function scanMessage() {
     } finally {
         isScanning = false;
         scanBtn.disabled = false;
-        scanBtn.innerHTML = '<span class="btn-icon">🔍</span><span class="btn-text">Scan Message</span>';
+        scanBtn.innerHTML = '<span class="btn-icon">🔍</span><span class="btn-text">Scan</span>';
     }
 }
 
@@ -849,75 +846,43 @@ document.getElementById("clearFeedback").addEventListener("click", () => {
   document.getElementById("feedbackStatus").classList.remove("show");
 });
 
-// === CAMERA SCANNER WITH FLIP ===
-const startCameraBtn = document.getElementById("startCamera");
-const flipCameraBtn = document.getElementById("flipCamera"); // new button
-const capturePhotoBtn = document.getElementById("capturePhoto");
-const cameraStream = document.getElementById("cameraStream");
-const snapshotCanvas = document.getElementById("snapshotCanvas");
-const cameraResult = document.getElementById("cameraResult");
-
-let cameraStreamTrack = null;
-let useFrontCamera = true; // default to front camera
-
-// Function to start camera
-async function startCamera() {
-  if (cameraStreamTrack) cameraStreamTrack.stop(); // stop previous camera
-
-  const constraints = {
-    video: { facingMode: useFrontCamera ? "user" : "environment" }
-  };
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    cameraStream.srcObject = stream;
-    cameraStreamTrack = stream.getTracks()[0];
-    capturePhotoBtn.disabled = false;
-    cameraResult.textContent = "Camera ready. Capture when ready.";
-  } catch (err) {
-    cameraResult.textContent = "❌ Camera access denied or not available.";
-    console.error(err);
-  }
-}
-
-// Start Camera
-startCameraBtn.addEventListener("click", startCamera);
-
-// Flip Camera
-flipCameraBtn.addEventListener("click", () => {
-  useFrontCamera = !useFrontCamera;
-  startCamera();
-});
-
-// Capture Photo & Extract Text
-capturePhotoBtn.addEventListener("click", () => {
-  const ctx = snapshotCanvas.getContext("2d");
-  snapshotCanvas.width = cameraStream.videoWidth;
-  snapshotCanvas.height = cameraStream.videoHeight;
-  ctx.drawImage(cameraStream, 0, 0);
-
-  cameraResult.textContent = "🔍 Scanning image for text...";
-
-  Tesseract.recognize(snapshotCanvas, 'eng')
-    .then(({ data: { text } }) => {
-      if (cameraStreamTrack) cameraStreamTrack.stop(); // Stop camera
-
-      if (!text.trim()) {
-        cameraResult.textContent = "⚠️ No readable text found in image.";
-        return;
+// === Image picker OCR ===
+function setupImagePicker() {
+  const fileInput = document.getElementById('imagePicker');
+  if (!fileInput) return;
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    
+    // Show loading state
+    const originalBtnText = scanBtn.innerHTML;
+    scanBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Extracting...</span>';
+    scanBtn.disabled = true;
+    
+    try {
+      const img = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+      const extracted = (text || '').trim();
+      if (extracted) {
+        messageInput.value = extracted;
+        messageInput.dispatchEvent(new Event('input'));
       }
-
-      cameraResult.innerHTML = `<strong>Extracted Text:</strong><br>${text}`;
-
-      // Send extracted text to phishing scanner
-      messageInput.value = text;
-      scanMessage();
-    })
-    .catch(err => {
-      cameraResult.textContent = "❌ Failed to process image.";
-      console.error(err);
-    });
-});
+    } catch (e) {
+      console.error('Image OCR failed', e);
+      alert('Failed to extract text from image. Please try again.');
+    } finally {
+      // Restore button state
+      scanBtn.innerHTML = originalBtnText;
+      scanBtn.disabled = false;
+      fileInput.value = '';
+    }
+  });
+}
 let authMode = "login"; // "login" or "register"
 
 function openLoginModal() {

@@ -37,7 +37,6 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  transition: all 0.3s ease;
 }
 
 body {
@@ -51,7 +50,7 @@ body {
   min-height: 100dvh;
 }
 
-html { height: 100dvh; overflow: hidden; scroll-behavior: smooth; }
+html { height: 100dvh; overflow: hidden; }
 
 /* Lock scroll when drawer is open */
 body.no-scroll { overflow: hidden; }
@@ -106,6 +105,8 @@ body.no-scroll { overflow: hidden; }
   background: rgba(99, 102, 241, 0.3);
   border-radius: 50%;
   animation: float 6s infinite linear;
+  /* Optimize for performance */
+  will-change: transform;
 }
 
 .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 8s; }
@@ -500,6 +501,24 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   scrollbar-color: #475569 #1e293b;
 }
 
+/* Performance optimization during scrolling */
+.chat-window.scrolling {
+  will-change: scroll-position;
+}
+
+.chat-window.scrolling .message-bubble {
+  transform: none;
+  transition: none;
+}
+
+/* Hardware acceleration for better scroll performance */
+.chat-window {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
 .chat-window::-webkit-scrollbar {
   width: 8px;
 }
@@ -597,6 +616,8 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   flex-direction: column;
   animation: fadeInUp 0.4s ease-out;
   max-width: 70%;
+  /* Optimize for scroll performance */
+  will-change: transform;
 }
 
 @keyframes fadeInUp {
@@ -641,11 +662,14 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   border: 1px solid rgba(99, 102, 241, 0.2);
   border-bottom-left-radius: 8px;
   backdrop-filter: blur(10px);
+  /* Optimize for scroll performance */
+  will-change: backdrop-filter;
 }
 
 .bubble-text {
   font-size: 1rem;
   line-height: 1.6;
+  
 }
 
 .timestamp {
@@ -686,19 +710,44 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   background: inherit;
   z-index: 10;
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto 20px auto;
   width: 100%;
+  align-items: center;
 }
+
+.image-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+#imagePicker {
+  display: none;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.icon-btn:hover { background: rgba(99,102,241,0.15); }
 
 #messageInput {
   flex-grow: 1;
   border-radius: 12px;
   border: 2px solid rgba(71, 85, 105, 0.5);
-  padding: 12px 16px;
+  padding: 6px 10px;
   font-size: 16px;
   resize: none;
   outline: none;
-  min-height: 50px;
+  min-height: 32px;
   max-height: 200px;
   overflow-y: auto;
   max-width: 600px;
@@ -734,6 +783,7 @@ body.light-theme .quiz-answer:hover { background: rgba(99,102,241,0.1); }
   align-items: center;
   gap: 8px;
   min-width: 140px;
+  height: 44px;
   box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
   position: relative;
   overflow: hidden;
@@ -1344,6 +1394,7 @@ body.light-theme .camera-actions .flip-btn:hover {
   .bubble-text {
     font-size: 0.9rem;
     line-height: 1.4;
+    
   }
   
   .timestamp {
@@ -1357,28 +1408,33 @@ body.light-theme .camera-actions .flip-btn:hover {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 12px 16px;
+    padding: 8px 16px;
     gap: 8px;
-    background: rgba(15, 23, 42, 0.95);
-    border-top: 1px solid rgba(99, 102, 241, 0.2);
-    backdrop-filter: blur(20px);
+    background: transparent;
+    border-top: none;
+    backdrop-filter: none;
     z-index: 1000;
+    align-items: center;
   }
   
   #messageInput {
-    padding: 12px 16px;
+    padding: 8px 12px;
     font-size: 0.9rem;
-    min-height: 44px;
+    min-height: 36px;
     max-height: 120px;
     border-radius: 20px;
   }
   
   .scan-btn {
-    padding: 12px 20px;
+    padding: 10px 16px;
     font-size: 0.9rem;
-    min-width: 120px;
+    min-width: 100px;
     border-radius: 20px;
     flex-shrink: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .btn-icon {
@@ -1506,17 +1562,24 @@ body.light-theme .camera-actions .flip-btn:hover {
   /* Compact Input */
   .input-area {
     padding: 10px 12px;
+    align-items: center;
   }
   
   #messageInput {
-    padding: 10px 14px;
+    padding: 8px 12px;
+    min-height: 28px;
+    max-height: 100px;
     font-size: 0.85rem;
   }
   
   .scan-btn {
-    padding: 10px 16px;
+    padding: 8px 14px;
     font-size: 0.85rem;
-    min-width: 100px;
+    min-width: 90px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .btn-text {

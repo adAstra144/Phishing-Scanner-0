@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-  <title>🛡️ SûrLink - AI-Powered Anti-Phishing Scanner</title>
-  <meta name="description" content="Advanced AI-powered phishing detection tool. Scan messages, emails, and text content for phishing attempts with high accuracy.">
+  <title>SûrLink - AI-Powered Anti-Phishing Scanner</title>
+  <meta name="description" content="Advanced AI-powered phishing detection tool. Scan messages, emails, and text content for phishing attempts.">
   <link rel="icon" type="image/svg+xml" href="assets/logo.avif">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="normalize.css">
@@ -44,10 +44,7 @@
             <span class="nav-icon">💬</span>
             <span class="nav-text">Chat Scanner</span>
           </button>
-          <button class="nav-btn" data-section="camera" onclick="showSection('camera')">
-            <span class="nav-icon">📷</span>
-           <span class="nav-text">Camera Scanner</span>
-          </button>
+          
           <button class="nav-btn" data-section="history" onclick="showSection('history')">
             <span class="nav-icon">📁</span>
             <span class="nav-text">Scan History</span>
@@ -122,15 +119,21 @@
 
         <!-- Input Area -->
         <div class="input-area">
+          <div class="image-input-wrapper">
+            <input id="imagePicker" type="file" accept="image/*" aria-label="Select image to extract text" />
+            <label for="imagePicker" class="icon-btn" aria-label="Choose image">
+              <img src="assets/image.webp" alt="Image icon" width="20" height="20">
+            </label>
+          </div>
           <textarea 
             id="messageInput" 
-            placeholder="Paste or type a message here... "
+            placeholder="Enter your message here... "
             rows="3"
             aria-label="Message to scan"
           ></textarea>
           <button id="scanBtn" class="scan-btn" aria-label="Scan message for phishing">
             <span class="btn-icon" role="img" aria-label="Scan">🔍</span>
-            <span class="btn-text">Scan Message</span>
+            <span class="btn-text">Scan</span>
           </button>
         </div>
       </div>
@@ -224,26 +227,7 @@
     </div>
   </div>
 </div>
-<!-- Camera Scanner -->
-<div id="cameraMainSection" class="content-section">
-  <div class="content-scroll">
-    <h3 style="margin-bottom:12px;">Camera Scanner</h3>
-    <p>Take a picture of a suspicious message or link to scan for phishing.</p>
-
-    <div class="camera-container">
-      <video id="cameraStream" autoplay playsinline></video>
-      <canvas id="snapshotCanvas" style="display:none;"></canvas>
-    </div>
-
-    <div class="camera-actions">
-      <button id="flipCamera" class="flip-btn">🔄</button>
-      <button id="startCamera" class="scan-btn">📷 Start Camera</button>
-      <button id="capturePhoto" class="scan-btn outline" disabled>📸 Capture</button>
-    </div>
-
-    <div id="cameraResult" class="camera-result"></div>
-  </div>
-</div>
+        
     </main>
   </div>
 
